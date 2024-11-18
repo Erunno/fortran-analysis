@@ -17,7 +17,7 @@ class Preprocessor:
     def preprocess_code(self, code):
         lines = code.split('\n')
         output_lines = []
-        skip_stack = []
+        skip_next_line_stack = [False]
 
         defines_local = self.defines.copy()
         fuse_line_to_previous_line = False
@@ -27,28 +27,32 @@ class Preprocessor:
             stripped_line = line.strip()
 
             def handle_ifndef(condition):
-                nonlocal skip_stack
-                skip_stack.append(condition not in defines_local)
+                nonlocal skip_next_line_stack
+                skip_next_line_stack.append(condition in defines_local)
 
             def handle_ifdef(condition):
-                nonlocal skip_stack
-                skip_stack.append(condition in defines_local)
+                nonlocal skip_next_line_stack
+                skip_next_line_stack.append(condition not in defines_local)
 
             def handle_endif():
-                nonlocal skip_stack
-                if skip_stack:
-                    skip_stack.pop()
+                nonlocal skip_next_line_stack
+                if skip_next_line_stack:
+                    skip_next_line_stack.pop()
 
             def handle_else():
-                nonlocal skip_stack
-                if skip_stack:
-                    skip_stack[-1] = not skip_stack[-1]
+                nonlocal skip_next_line_stack
+                if skip_next_line_stack:
+                    skip_next_line_stack[-1] = not skip_next_line_stack[-1]
 
             def handle_define(parts):
                 if len(parts) == 3:
                     defines_local[parts[1]] = parts[2]
                 elif len(parts) == 2:
                     defines_local[parts[1]] = 'default'
+
+            def handle_undef(parts):
+                if len(parts) == 2 and parts[1] in defines_local:
+                    del defines_local[parts[1]]
 
             def expand_using_defines(line):
                 for key, value in defines_local.items():
@@ -62,6 +66,7 @@ class Preprocessor:
                 '#endif': lambda parts: handle_endif(),
                 '#else': lambda parts: handle_else(),
                 '#define': lambda parts: handle_define(parts),
+                '#undef': lambda parts: handle_undef(parts),
                 'include': lambda parts: None #TODO: implement include support
             }
 
@@ -70,7 +75,7 @@ class Preprocessor:
             
             if directive in handlers:
                 handlers[directive](parts)
-            elif not any(skip_stack):
+            elif not skip_next_line_stack[-1]:
                 line = expand_using_defines(line)
 
                 if fuse_line_to_previous_line:
