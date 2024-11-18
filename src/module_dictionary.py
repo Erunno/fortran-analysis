@@ -15,14 +15,15 @@ class ModuleDictionary:
         return self.modules[module_name]
     
     def _load_module(self, module_name) -> FortranModule:
-        module_file = self._module_name_to_file(module_name)
-        return FortranModule(module_name, module_file)
+        module_file = self._module_name_to_path(module_name)
+        return FortranModule(module_name, file_path=module_file, base_dir=self.base_dir)
         
     def _load_files(self, base_dir):
         file_dict = {}
         for root, _, files in os.walk(base_dir):
             for file in files:
                 full_path = os.path.join(root, file)
+
                 file_dict[file] = full_path
         return file_dict
     

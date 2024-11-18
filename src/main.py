@@ -5,6 +5,7 @@ reg_cm = 'C:\\Users\\matya\\source\\repos\\RegCM'
 d = module_dictionary.ModuleDictionary(base_dir=reg_cm)
 
 modules = [
+'mod_moloch',
 'mod_intkinds',
 'mod_realkinds',
 'mod_dynparam',
@@ -32,4 +33,7 @@ modules = [
 ]
 
 for module in modules:
-    d.get_module(module).print_info()
+    print (module)
+    module = d.get_module(module)
+    print(module)
+

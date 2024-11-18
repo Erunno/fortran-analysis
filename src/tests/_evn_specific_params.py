@@ -1,0 +1,1 @@
+root_reg_cm = 'C:\\Users\\matya\\source\\repos\\RegCM'
