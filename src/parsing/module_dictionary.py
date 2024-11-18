@@ -1,4 +1,4 @@
-from f_ast.module import FortranModule
+from parsing.module import FortranModule
 import os
 from Levenshtein import distance as lev
 
@@ -16,7 +16,7 @@ class ModuleDictionary:
     
     def _load_module(self, module_name) -> FortranModule:
         module_file = self._module_name_to_path(module_name)
-        return FortranModule(module_name, file_path=module_file, base_dir=self.base_dir)
+        return FortranModule(module_name, file_path=module_file, base_dir=self.base_dir, module_dictionary=self)
         
     def _load_files(self, base_dir):
         file_dict = {}
@@ -40,5 +40,4 @@ class ModuleDictionary:
                 best_match = f_name
 
         return self.file_system[best_match]
-
-
+    

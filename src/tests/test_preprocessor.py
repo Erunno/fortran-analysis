@@ -4,7 +4,7 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 
-from utils.preprocessor import Preprocessor
+from parsing.preprocessor import Preprocessor
 
 class TestPreprocessor(unittest.TestCase):
     def setUp(self):
@@ -82,6 +82,26 @@ class TestPreprocessor(unittest.TestCase):
         integer :: i = 0
         #else
         integer :: i = 1
+        #endif
+        #endif
+        """
+        expected_output = """
+        integer :: i = 1
+        """
+        output = self.preprocessor.preprocess_code(code)
+        self.assertEqual(output.strip(), expected_output.strip())
+
+    def test_preprocess_code_nested_ifdef_not_expanded(self):
+        code = """
+        #define OUTER_DEFINE 1
+        #ifdef OUTER_DEFINE
+        integer :: i = 1
+        #else
+        #define INNER_DEFINE 1
+        #ifdef INNER_DEFINE
+        integer :: j = 1
+        #else
+        integer :: j = 0
         #endif
         #endif
         """

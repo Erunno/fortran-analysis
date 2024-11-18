@@ -17,7 +17,7 @@ class Preprocessor:
     def preprocess_code(self, code):
         lines = code.split('\n')
         output_lines = []
-        skip_next_line_stack = [False]
+        skip_next_line_stack = []
 
         defines_local = self.defines.copy()
         fuse_line_to_previous_line = False
@@ -59,6 +59,9 @@ class Preprocessor:
                     line = line.replace(key, value)
                 return line
             
+            def are_we_skipping_lines(skip_next_line_stack):
+                return not any(skip_next_line_stack)
+
             handlers = {
                 '#if': lambda parts: handle_ifdef(parts[1]),
                 '#ifdef': lambda parts: handle_ifdef(parts[1]),
@@ -75,7 +78,7 @@ class Preprocessor:
             
             if directive in handlers:
                 handlers[directive](parts)
-            elif not skip_next_line_stack[-1]:
+            elif are_we_skipping_lines(skip_next_line_stack):
                 line = expand_using_defines(line)
 
                 if fuse_line_to_previous_line:
