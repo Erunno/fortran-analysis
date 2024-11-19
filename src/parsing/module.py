@@ -24,7 +24,7 @@ class FortranModule:
         
         assert self.module.get_name().tostr() == self.name
 
-        self.definitions = FortranDefinitions(self.specif, self.sub_program)
+        self.definitions = FortranDefinitions(self.specif, self.sub_program, module_dictionary)
 
         self.public_exports_context = ModulePublicExportsContext(self.definitions)
         self.private_context = ModulePrivatesContext(self.definitions)

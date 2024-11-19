@@ -11,7 +11,7 @@ from parameterized import parameterized
 class TestModuleDictionary(unittest.TestCase):
     def setUp(self):
         self.reg_cm = params.root_reg_cm 
-        self.d = ModuleDictionary(base_dir=self.reg_cm)
+        self.d = ModuleDictionary(base_dir=self.reg_cm, skip_dirs=['Tools'])
 
     @parameterized.expand([
         ('mod_moloch',),

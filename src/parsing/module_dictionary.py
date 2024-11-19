@@ -3,9 +3,11 @@ import os
 from Levenshtein import distance as lev
 
 class ModuleDictionary:
-    def __init__(self, base_dir):
+    def __init__(self, base_dir, skip_dirs):
         self.modules = {}
         self.base_dir = base_dir
+        self.skip_dirs = skip_dirs or []
+
         self.file_system = self._load_files(base_dir)
 
     def get_module(self, module_name) -> FortranModule:
@@ -21,11 +23,23 @@ class ModuleDictionary:
     def _load_files(self, base_dir):
         file_dict = {}
         for root, _, files in os.walk(base_dir):
+            if self._should_skip_dir(root):
+                continue
+
             for file in files:
                 full_path = os.path.join(root, file)
 
                 file_dict[file] = full_path
         return file_dict
+    
+    def _should_skip_dir(self, dir_name):
+        for skip_dir in self.skip_dirs:
+            skip_path = os.path.join(self.base_dir, skip_dir)
+
+            if dir_name.startswith(skip_path):
+                return True
+            
+        return False
     
     def _module_name_to_path(self, module_name):
         best_match = None
