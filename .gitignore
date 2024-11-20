@@ -2,3 +2,5 @@
 **/.vscode/
 .pytest_cache/
 __test_sources/
+test.out
+tmp/

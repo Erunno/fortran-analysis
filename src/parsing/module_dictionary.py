@@ -16,6 +16,9 @@ class ModuleDictionary:
 
         return self.modules[module_name]
     
+    def get_file_for(self, module_name, extension='.F90'):
+        return self._module_name_to_path(module_name, extension)
+
     def _load_module(self, module_name) -> FortranModule:
         module_file = self._module_name_to_path(module_name)
         return FortranModule(module_name, file_path=module_file, base_dir=self.base_dir, module_dictionary=self)
@@ -41,12 +44,12 @@ class ModuleDictionary:
             
         return False
     
-    def _module_name_to_path(self, module_name):
+    def _module_name_to_path(self, module_name, extension='.F90'):
         best_match = None
         lowest_distance = float('inf')
 
         for f_name in self.file_system:
-            f_file_no_f90_suffix = f_name[:-4] if f_name.endswith('.F90') else f_name
+            f_file_no_f90_suffix = f_name[:-4] if f_name.endswith(extension) else f_name
 
             dist = lev(module_name, f_file_no_f90_suffix)
             if dist < lowest_distance:

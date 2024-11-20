@@ -14,7 +14,7 @@ class Preprocessor:
         if key in self.defines:
             del self.defines[key]
 
-    def preprocess_code(self, code):
+    def preprocess_code(self, code, module_dictionary=None):
         lines = code.split('\n')
         output_lines = []
         skip_next_line_stack = []
@@ -22,7 +22,10 @@ class Preprocessor:
         defines_local = self.defines.copy()
         fuse_line_to_previous_line = False
 
-        for i, line in enumerate(lines):
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+
             defines_local['__LINE__'] = f'{i + 1}'
             stripped_line = line.strip()
 
@@ -54,6 +57,21 @@ class Preprocessor:
                 if len(parts) == 2 and parts[1] in defines_local:
                     del defines_local[parts[1]]
 
+            def handle_include(parts):
+                nonlocal i
+                nonlocal lines
+
+                if not module_dictionary:
+                    raise ValueError('Module dictionary is required for handling includes')
+
+                file_name = parts[1].strip('<').strip('>')
+                file_path = module_dictionary.get_file_for(file_name)
+
+                with open(file_path, 'r') as f:
+                    included_code_lines = f.read().split('\n')
+                    lines = lines[:i] + included_code_lines + lines[i+1:]
+                    i -= 1
+
             def expand_using_defines(line):
                 for key, value in defines_local.items():
                     line = line.replace(key, value)
@@ -70,7 +88,7 @@ class Preprocessor:
                 '#else': lambda parts: handle_else(),
                 '#define': lambda parts: handle_define(parts),
                 '#undef': lambda parts: handle_undef(parts),
-                'include': lambda parts: None #TODO: implement include support
+                '#include': lambda parts: handle_include(parts)
             }
 
             parts = stripped_line.split()
@@ -87,6 +105,8 @@ class Preprocessor:
                     output_lines.append(line)
 
                 fuse_line_to_previous_line = line.endswith('&')
+
+            i += 1
 
         # TODO: this `local` call will be needed for the analysis later (how to handle it?)
         def remove_local_call(line):

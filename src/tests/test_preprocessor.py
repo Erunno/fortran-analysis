@@ -5,10 +5,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 
 from parsing.preprocessor import Preprocessor
+import _evn_specific_params as params
 
 class TestPreprocessor(unittest.TestCase):
     def setUp(self):
         self.preprocessor = Preprocessor(file_path="test_file.f90")
+        if not os.path.exists(params.tmp_dir):
+            os.makedirs(params.tmp_dir)
 
     def test_add_define(self):
         self.preprocessor.add_define('TEST_DEFINE', '1')
@@ -110,6 +113,52 @@ class TestPreprocessor(unittest.TestCase):
         """
         output = self.preprocessor.preprocess_code(code)
         self.assertEqual(output.strip(), expected_output.strip())
+
+    def test_preprocess_code_with_include(self):
+        code = """
+        #include <included_file.f90>
+        """
+        included_file_path = os.path.join(params.tmp_dir, 'included_file.f90')
+        with open(included_file_path, 'w') as f:
+            f.write("""
+            integer :: i = 1
+            """)
+        
+        expected_output = """
+        integer :: i = 1
+        """
+        
+        output = self.preprocessor.preprocess_code(code, MockModuleDictionary())
+
+        self.assertEqual(output.strip(), expected_output.strip())
+        os.remove(included_file_path)
+
+    def test_preprocess_code_with_nested_include(self):
+        code = """
+        #include <outer_file.f90>
+        """
+        outer_file_path = os.path.join(params.tmp_dir, 'outer_file.f90')
+        inner_file_path = os.path.join(params.tmp_dir, 'inner_file.f90')
+        with open(outer_file_path, 'w') as f:
+            f.write("""
+            #include <inner_file.f90>
+            """)
+        with open(inner_file_path, 'w') as f:
+            f.write("""
+            integer :: i = 1
+            """)
+        
+        expected_output = """
+        integer :: i = 1
+        """
+        output = self.preprocessor.preprocess_code(code, MockModuleDictionary())
+        self.assertEqual(output.strip(), expected_output.strip())
+        os.remove(outer_file_path)
+        os.remove(inner_file_path)
+
+class MockModuleDictionary:
+    def get_file_for(self, module_name, extension='.f90'):
+        return os.path.join(params.tmp_dir, module_name)
 
 
 if __name__ == '__main__':

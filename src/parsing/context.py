@@ -1,40 +1,79 @@
+import sys
 from fparser.two.Fortran2003 import Program, Module, Specification_Part, Module_Subprogram_Part, Module_Stmt
 
 from parsing.definitions import FortranDefinitions
+# from parsing.module import FortranModule
 
 class FortranContext:
     def get_symbol(symbol_name: str):
         raise NotImplementedError("This method should be implemented by subclasses")
 
+    def get_symbol():
+        raise NotImplementedError("This method should be implemented by subclasses")
+    
 class ModulePublicExportsContext(FortranContext):
     def __init__(self, definitions: FortranDefinitions):
         self.definitions = definitions
-        pass
 
-class ModulePrivatesContext(FortranContext):
+    def get_symbol(self, symbol_name: str):
+        return self.definitions.find_public_symbol(symbol_name)
+    
+class ModuleLocalContext(FortranContext):
     def __init__(self, definitions: FortranDefinitions):
         self.definitions = definitions
     
+    def get_symbol(self, symbol_name: str):
+        return self.definitions.find_local_symbol(symbol_name)
+    
 class ModuleImportedContext():
-    def __init__(self, definitions: FortranDefinitions, moduleDictionary):
+    def __init__(self, definitions: FortranDefinitions, module_dictionary):
         self.definitions = definitions
+        self.modules = None
+        
+        self.module_dictionary = module_dictionary
 
-class SubroutineContext(FortranContext):
-    def __init__(self, subroutine: Module_Subprogram_Part):
-        self.subroutine = subroutine
-        self.variables = self._get_variables()
+    def get_symbol(self, symbol_name: str):
+        self._fetch_modules()
+        returned_symbols = []
 
-class ChainedContext(FortranContext):
+        for module in reversed(self.modules):
+            symbol = module.public_exports_context.get_symbol(symbol_name)
+            
+            if not symbol:
+                continue
+                
+            returned_symbols.append(symbol)
+            # TODO: solve only imports ... e.g. file: mod_memutil.f90
+            
+        if len(returned_symbols) > 1:
+            print(f"\033[93mWarning: Symbol {symbol_name} is defined in multiple modules <{[s.defined_in() for s in returned_symbols]}>\033[0m", file=sys.stderr, end=' ')
+        
+        return returned_symbols[0] if returned_symbols else None
+
+    def _fetch_modules(self):
+        if self.modules is not None:
+            return
+
+        module_names = [using.key() for using in self.definitions.get_using_statements()]
+        self.modules = [self.module_dictionary.get_module(module_name) for module_name in module_names]
+
+
+class SubroutineFunctionContext(FortranContext):
+    def __init__(self, subroutine_definitions: FortranDefinitions):
+        self.subroutine_definitions = subroutine_definitions  
+
+    def get_symbol(self, symbol_name: str):
+        return self.subroutine_definitions.find_local_symbol(symbol_name)
+
+class ChainedContext:
     def __init__(self, contexts: list[FortranContext]):
         self.contexts = contexts
 
-    def push_context(self, context: FortranContext):
-        self.contexts.append(context)
-
-    def pop_context(self):      
-        self.contexts.pop()
+    def get_expanded(self, context: FortranContext):
+        return ChainedContext(self.contexts + [context])
 
     def __getattr__(self, name):
+
         def method(*args, **kwargs):
             for context in reversed(self.contexts):
                 func = getattr(context, name, None)
