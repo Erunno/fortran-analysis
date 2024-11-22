@@ -29,9 +29,6 @@ class FunctionAnalyzer:
             else:
                 print(f"\033[91mSymbol: {s} not found\033[0m")
 
-        
-
-        print(f"Function: {function_symbol.key()}")
 
     def get_used_symbols(self, function_symbol: GenericFunctionDefinition):
         execution_part = find_in_tree(function_symbol.fparser_node, Execution_Part)

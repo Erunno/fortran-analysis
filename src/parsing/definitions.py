@@ -63,6 +63,9 @@ class VariableDeclaration(SymbolDefinition):
             decl_list = find_in_tree(fparser_node, Entity_Decl_List)
             names = [name.tostr().lower() for name in findall_in_tree(decl_list, Name, exclude=Initialization)]
 
+            if 'rkx' in names:
+                pass
+
             return [VariableDeclaration(fparser_node, name, definition_location) for name in names]
         
     def class_label(self):
@@ -236,6 +239,9 @@ class FortranDefinitions:
             (Type.create_from, self.types),
         ]
 
+        # default is public i guess ?? ¯\_(ツ)_/¯
+        self.defining_public = True
+
         self.load(specification)
         if subprogram:
             self.load(subprogram)
@@ -248,9 +254,6 @@ class FortranDefinitions:
         if not root:
             return
         
-        # default is public i guess ?? ¯\_(ツ)_/¯
-        defining_public = True
-
         for child in root.children:
             for builder, container in self.builders:
                 symbol = builder(child, self.definition_location)
@@ -258,13 +261,13 @@ class FortranDefinitions:
                     continue
 
                 if isinstance(symbol, AccessModifier) and symbol.is_global():
-                    defining_public = symbol.defines_public()
+                    self.defining_public = symbol.defines_public()
 
                 symbols = [symbol] if not isinstance(symbol, list) else symbol 
                 
                 for symbol in symbols:
                     if isinstance(symbol, SymbolDefinition) and not symbol.has_access_modifier():
-                        symbol.set_public(value=defining_public)
+                        symbol.set_public(value=self.defining_public)
                     
                     container.append(symbol)
 

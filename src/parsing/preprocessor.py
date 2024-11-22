@@ -69,7 +69,9 @@ class Preprocessor:
 
                 with open(file_path, 'r') as f:
                     included_code_lines = f.read().split('\n')
-                    lines = lines[:i] + included_code_lines + lines[i+1:]
+                    lines = lines[:i] + \
+                            included_code_lines + \
+                            lines[i+1:]
                     i -= 1
 
             def expand_using_defines(line):
