@@ -6,6 +6,7 @@ from fparser.two.Fortran2003 import Program, Module, Specification_Part, \
     
 from fparser.two.Fortran2008.type_declaration_stmt_r501 import Type_Declaration_Stmt
 
+from parsing.context import SubroutineFunctionContext
 from parsing.find_in_tree import find_in_tree, findall_in_tree
 
 class FortranDefinitions:
@@ -87,6 +88,9 @@ class GenericFunctionDefinition(SymbolDefinition):
         location = f'[{self.class_label()} {self.key()}]'
 
         return FortranDefinitions(location, specification, subprogram, module_dictionary=None)
+    
+    def get_local_context(self):
+        return SubroutineFunctionContext(self.get_definitions())
 
 class Subroutine(GenericFunctionDefinition):
     def __init__(self, fparser_node: Subroutine_Subprogram, definition_location: str):

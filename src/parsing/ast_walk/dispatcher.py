@@ -1,11 +1,20 @@
 from typing import Generic, TypeVar, Callable
 from fparser.two.Fortran2003 import Base, Function_Stmt, Procedure_Stmt
+from parsing.ast_walk.ast_nodes.my_ats_node import MyAstNode
 from parsing.ast_walk.ast_nodes.wrapper import wrap_node
-from parsing.ast_walk.my_ast_nodes import MyAstNode
+from parsing.definitions import GenericFunctionDefinition
 
 class Params:
-    def __init__(self):
-        pass
+    def __init__(self, context, module_dictionary, call_stack: list[GenericFunctionDefinition]):
+        self.context = context
+        self.module_dictionary = module_dictionary
+        self.call_stack = call_stack
+
+    def extend(self, context, stack_frame: GenericFunctionDefinition):
+        return Params(context, self.module_dictionary, self.call_stack + [stack_frame])
+    
+    def get_current_function(self):
+        return self.call_stack[-1]
 
 class Handler:
     def __init__(self):
@@ -32,7 +41,7 @@ class Dispatcher:
         
         handler = handler_builder()
         handler.set_dispatch(self.dispatch)
-        
+
         return handler.handle(node, params)
 
     def register(self, handler_builder: Callable[[], Handler]):

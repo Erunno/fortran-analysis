@@ -1,12 +1,23 @@
-from parsing.ast_walk.ast_nodes._my_ats_node import AssignmentNode, CallNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, SubroutineDefinitionNode, WriteStdoutNode
+from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
+from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Handler, Params
+from parsing.context import SubroutineFunctionContext
 
 class AssignmentPrinter(Handler):
     def handle(self, node: AssignmentNode , params: Params):
         print(f"Assignment Node: <{node.fnode}>")
 
+        print(f"Target:")
+        self.dispatch(node=node.target_fnode, params=params)
+        
+        print(f"Source:")
+        self.dispatch(node=node.source_fnode, params=params)
+        pass
+
 class FunctionDefinitionPrinter(Handler):
     def handle(self, node: FunctionDefinitionNode | SubroutineDefinitionNode, params: Params):
+        print(f"Function Definition Node: <{params.get_current_function()}>")
+        
         for stmt in node.execution_part:
             self.dispatch(node=stmt, params=params)
 
@@ -40,3 +51,43 @@ class IfBlockPrinter(Handler):
 class WriteStdoutPrinter(Handler):
     def handle(self, node: WriteStdoutNode, params: Params):
         print(f"Write to stdout Node")
+
+class OperatorPrinter(Handler):
+    def handle(self, node: OperatorNode, params: Params):
+
+        print("Operator Node started")
+        self.dispatch(node=node.left_expr, params=params)
+        
+        print(f"Op Sign: <{node.operator_sign}>")
+
+        self.dispatch(node=node.right_expr, params=params)
+        print("Operator Node ended")
+
+class ParenthesisPrinter(Handler):  
+    def handle(self, node: ParenthesisNode, params: Params):
+        print("Parenthesis Node started")
+        self.dispatch(node=node.inner_expr, params=params)
+        print("Parenthesis Node ended")
+
+class ReferencePrinter(Handler):
+    def handle(self, node: ReferenceNode, params: Params):
+        print(f"Reference Node: referencing <{node.ref_name}>")
+
+class NamePrinter(Handler):
+    def handle(self, node: NameNode, params: Params):
+        print(f"Name Node: referencing <{node.ref_name}>")
+
+class IntrinsicFunctionPrinter(Handler):
+    def handle(self, node: IntrinsicFunctionNode, params: Params):
+        print(f"Intrinsic Function Node: <{node.function_name}>")
+
+        for call_arg in node.call_args_exprs:
+            self.dispatch(node=call_arg, params=params)
+
+class LiteralPrinter(Handler):
+    def handle(self, node: LiteralNode, params: Params):
+        print(f"Literal Node: <{node.value}>")
+
+class DataRefPrinter(Handler):
+    def handle(self, node: DataRefNode, params: Params):
+        print(f"Data Ref Node: <{node.object_name}>%<{node.property_name}>")

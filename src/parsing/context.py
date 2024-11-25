@@ -1,8 +1,11 @@
 import sys
 from fparser.two.Fortran2003 import Program, Module, Specification_Part, Module_Subprogram_Part, Module_Stmt
 
-from parsing.definitions import FortranDefinitions
+# from parsing.definitions import FortranDefinitions
 # from parsing.module import FortranModule
+
+class FortranDefinitions:
+    pass
 
 class FortranContext:
     def get_symbol(symbol_name: str):

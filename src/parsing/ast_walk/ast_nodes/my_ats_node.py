@@ -14,6 +14,8 @@ class MyAstNode(Generic[T]):
 class AssignmentNode(MyAstNode[Assignment_Stmt]):
     def __init__(self, fnode: Assignment_Stmt):
         super().__init__(fnode)
+        self.target_fnode = fnode.children[0]
+        self.source_fnode = fnode.children[2]
 
 FunSub = TypeVar('FunSub', Subroutine_Subprogram, Function_Subprogram)
 class FuncSubBaseNode(MyAstNode[FunSub]):
@@ -33,7 +35,7 @@ class CallNode(MyAstNode[Call_Stmt]):
     def __init__(self, fnode: Call_Stmt):
         super().__init__(fnode)
 
-        self.called_function_name = fnode.children[0].tostr()
+        self.called_function_name = fnode.children[0].tostr().lower()
    
 class ForLoopNode(MyAstNode[Block_Nonlabel_Do_Construct]):
     def __init__(self, fnode: Block_Nonlabel_Do_Construct):
