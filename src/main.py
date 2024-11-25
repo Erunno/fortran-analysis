@@ -1,3 +1,4 @@
+from parsing.ast_walk.run_translation import run_translation
 from parsing.functions_analyzer import FunctionAnalyzer
 from parsing.module_dictionary import ModuleDictionary
 
@@ -60,9 +61,14 @@ modules = [
 #         print(line)
 
 
-module = d.get_module('mod_moloch')
+# module = d.get_module('mod_moloch')
 
-analyzer = FunctionAnalyzer(module)
+# analyzer = FunctionAnalyzer(module)
 
-analyzer.analyze('moloch')
+# analyzer.analyze('moloch')
 
+run_translation(
+    module_dict=d,
+    module_name='mod_moloch',
+    function_name='moloch'
+)

@@ -63,9 +63,6 @@ class VariableDeclaration(SymbolDefinition):
             decl_list = find_in_tree(fparser_node, Entity_Decl_List)
             names = [name.tostr().lower() for name in findall_in_tree(decl_list, Name, exclude=Initialization)]
 
-            if 'rkx' in names:
-                pass
-
             return [VariableDeclaration(fparser_node, name, definition_location) for name in names]
         
     def class_label(self):

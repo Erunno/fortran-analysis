@@ -1,5 +1,5 @@
 from parsing.context import SubroutineFunctionContext
-from parsing.definitions import GenericFunctionDefinition
+from parsing.definitions import GenericFunctionDefinition, Interface, VariableDeclaration
 from parsing.find_in_tree import find_in_tree, findall_in_tree
 from parsing.module import FortranModule
 
@@ -20,7 +20,9 @@ class FunctionAnalyzer:
         function_local_context = SubroutineFunctionContext(function_symbol.get_definitions())
         context = self.module.module_context.get_expanded(function_local_context)
 
-        for s in self.get_used_symbols(function_symbol):
+        used_symbols_names = self.get_used_symbols(function_symbol)
+        
+        for s in used_symbols_names:
             print('looking for:', s, end=' ')
 
             symbol = context.get_symbol(s)
@@ -28,7 +30,20 @@ class FunctionAnalyzer:
                 print(f"found: {symbol}")
             else:
                 print(f"\033[91mSymbol: {s} not found\033[0m")
+        
+        used_symbols = [context.get_symbol(s) for s in used_symbols_names]
 
+        subroutines_and_functions = [s for s in used_symbols if isinstance(s, GenericFunctionDefinition)]
+        interfaces = [s for s in used_symbols if isinstance(s, Interface)]
+        variables = [s for s in used_symbols if isinstance(s, VariableDeclaration)]
+
+        symbols_defined_in_function = [s for s in used_symbols_names if function_local_context.get_symbol(s)]
+        outside_symbols = [s for s in used_symbols_names if s not in symbols_defined_in_function]
+
+        print (f"\033[94mSubroutines and functions: {subroutines_and_functions}\033[0m")
+        print (f"\033[94mInterfaces: {interfaces}\033[0m")
+        print (f"\033[94mVariables: {[v.key() for v in variables]}\033[0m")
+        print (f"\033[94mSymbols from outside: {outside_symbols}\033[0m")
 
     def get_used_symbols(self, function_symbol: GenericFunctionDefinition):
         execution_part = find_in_tree(function_symbol.fparser_node, Execution_Part)
@@ -52,7 +67,6 @@ class FunctionAnalyzer:
                 return True
 
         excluded = [n for n in names if is_member_of_type(n)]
-
 
         for e in excluded:
             to_print = e.parent.parent if e.parent and e.parent.parent else e.parent if e.parent else e
