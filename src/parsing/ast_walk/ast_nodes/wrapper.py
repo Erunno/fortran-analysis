@@ -31,7 +31,6 @@ _node_map = [
     (Boz_Literal_Constant, LiteralNode),
     (Logical_Literal_Constant, LiteralNode),
     (Data_Ref, DataRefNode),
-
 ]
 
 _node_map_dict = {fnode: my_node for fnode, my_node in _node_map}

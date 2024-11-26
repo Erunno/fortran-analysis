@@ -16,21 +16,23 @@ class Params:
     def get_current_function(self):
         return self.call_stack[-1]
 
-class Handler:
+THandlerReturn = TypeVar('THandlerReturn')
+class Handler[THandlerReturn]:
     def __init__(self):
         self.dispatch: Callable[[MyAstNode | Base, Params], None] = None
 
     def set_dispatch(self, dispatch: Callable[[MyAstNode | Base, Params], None]):
         self.dispatch = dispatch
 
-    def handle(self, node: MyAstNode, params: Params):
+    def handle(self, node: MyAstNode, params: Params) -> THandlerReturn:
         raise NotImplementedError(f"handle to be implemented by children classes")
-    
-class Dispatcher:
+
+TDispReturn = TypeVar('TDispReturn')
+class Dispatcher[TDispReturn]:
     def __init__(self):
         self.handlers: list[Callable[[], Handler]] = {}
 
-    def dispatch(self, node: MyAstNode | Base, params: Params):
+    def dispatch(self, node: MyAstNode | Base, params: Params) -> TDispReturn:
         if not isinstance(node, MyAstNode):
             node = wrap_node(node)
 

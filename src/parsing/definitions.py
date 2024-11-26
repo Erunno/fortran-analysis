@@ -2,12 +2,18 @@ from fparser.two.Fortran2003 import Program, Module, Specification_Part, \
     Module_Subprogram_Part, Use_Stmt, Subroutine_Subprogram, Access_Stmt, \
     Name, Entity_Decl_List, Include_Filename, Access_Spec, Interface_Block, \
     Interface_Stmt, Function_Subprogram, Function_Stmt, Derived_Type_Def, \
-    Derived_Type_Stmt, Initialization, Internal_Subprogram_Part
+    Derived_Type_Stmt, Initialization, Internal_Subprogram_Part, \
+    Intrinsic_Type_Spec, Kind_Selector, Attr_Spec, Dimension_Attr_Spec, \
+    Assumed_Shape_Spec_List, Assumed_Shape_Spec, Dummy_Arg_List, \
+    Declaration_Type_Spec, Type_Name, Intent_Attr_Spec, Length_Selector, Type_Param_Value, \
+    Suffix
     
 from fparser.two.Fortran2008.type_declaration_stmt_r501 import Type_Declaration_Stmt
+from fparser.two.Fortran2008 import Attr_Spec_List
 
 from parsing.context import SubroutineFunctionContext
-from parsing.find_in_tree import find_in_tree, findall_in_tree
+from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_tree
+from parsing.typing import ArrayType, FortranType, FunctionArgumentForType, FunctionType, PointerType, PrimitiveType, StructType, VoidType
 
 class FortranDefinitions:
     pass
@@ -55,6 +61,9 @@ class VariableDeclaration(SymbolDefinition):
         if self.access_modifier:
             self._is_public = self.access_modifier.tostr().lower() == "public"
 
+        self._type: FortranType = None
+        self._denoted_as_optional: bool = None
+
     def _get_access_modifier(self):
         return find_in_tree(self.fparser_node, Access_Spec)
 
@@ -65,9 +74,127 @@ class VariableDeclaration(SymbolDefinition):
             names = [name.tostr().lower() for name in findall_in_tree(decl_list, Name, exclude=Initialization)]
 
             return [VariableDeclaration(fparser_node, name, definition_location) for name in names]
-        
+    
     def class_label(self):
         return "Variable"
+    
+    def get_type(self):
+        if not self._type:
+            self._type, self._denoted_as_optional = self._parse_type(self.fparser_node)
+
+        return self._type
+    
+    def denoted_as_optional(self) -> bool:
+        if not self._denoted_as_optional:
+            self._type, self._denoted_as_optional = self._parse_type(self.fparser_node)
+
+        return self._denoted_as_optional
+
+    def _parse_type(self, fparser_node: Type_Declaration_Stmt):
+        return_type: FortranType = None
+
+        type_spec = fparser_node.children[0]
+
+        if isinstance(type_spec, Intrinsic_Type_Spec):
+            return_type = self._parse_intrinsic_type(type_spec)
+        elif isinstance(type_spec, Declaration_Type_Spec):
+            typename = find_in_tree(type_spec, Type_Name)
+            return_type = StructType(typename.tostr().lower())
+        else:
+            raise NotImplementedError(f"Type spec {type_spec} not supported yet")
+
+        attributes = find_in_node(fparser_node, Attr_Spec_List)
+
+        is_pointer, array_dims, denoted_as_optional = self._parse_attributes(attributes)
+        return_type = self._wrap_base_type(return_type, is_pointer, array_dims)
+        
+        return return_type, denoted_as_optional
+    
+    def _parse_intrinsic_type(self, type_spec: Intrinsic_Type_Spec):
+        intrinsic_type = PrimitiveType.get_type_from_string(type_spec.children[0])
+            
+        kind = find_in_tree(type_spec, Kind_Selector)
+        if kind:
+            kind_name = find_in_tree(kind, Name)
+            intrinsic_type.add_attribute("kind", kind_name.tostr().lower())
+
+        length = find_in_tree(type_spec, Length_Selector)
+        if length:
+            length_value = find_in_tree(length, Type_Param_Value)
+            intrinsic_type.add_attribute("length", length_value.tostr().lower())
+        
+        return intrinsic_type
+
+    def _parse_attributes(self, attributes):
+        is_pointer = False
+        array_dims = None
+        denoted_as_optional = False
+
+        if not attributes:
+            return is_pointer, array_dims, denoted_as_optional
+        
+        # TODO maybe use something better than shit tun of IFs
+        for attr in attributes.children:
+            if isinstance(attr, Attr_Spec) and attr.tostr().lower() == "pointer":
+                is_pointer = True
+            elif isinstance(attr, Attr_Spec) and attr.tostr().lower() == "optional":
+                denoted_as_optional = True
+            elif isinstance(attr, Attr_Spec) and attr.tostr().lower() == "parameter":
+                pass # parameter means constant (does not affect type)
+            elif isinstance(attr, Dimension_Attr_Spec):
+                shape_list = find_in_tree(attr, Assumed_Shape_Spec_List)
+                array_dims = []
+
+                for shape in shape_list.children:
+                    if shape.tostr().lower() == ":":
+                        array_dims.append(ArrayType.variable_length())
+                    else:
+                        raise NotImplementedError("Only assumed shape arrays are supported at the moment")
+            elif isinstance(attr, Intent_Attr_Spec):
+                pass # intent does not affect type
+            else:
+                raise NotImplementedError(f"Attribute {attr} not supported yet")
+    
+        return is_pointer, array_dims, denoted_as_optional
+    
+    def _wrap_base_type(self, base_type: FortranType, is_pointer, array_dims):
+        # the order of these checks is important (fortran does not allow pointer arrays ... luckily)   
+        if array_dims:
+            base_type = ArrayType(base_type, array_dims)
+
+        if is_pointer:
+            base_type = PointerType(base_type)
+
+        return base_type
+
+class FunctionReturnVariableDeclaration(VariableDeclaration):
+    def __init__(self, fparser_node: Function_Stmt, name: str, definition_location: str):
+        super().__init__(fparser_node, name, definition_location)
+
+    @staticmethod
+    def create_from(fparser_node, definition_location):
+        if isinstance(fparser_node, Function_Subprogram):
+            fparser_node = find_in_node(fparser_node, Function_Stmt)
+
+        if isinstance(fparser_node, Function_Stmt):
+            suffix = find_in_node(fparser_node, Suffix)
+            name = find_in_tree(suffix, Name).tostr().lower()
+
+            return FunctionReturnVariableDeclaration(fparser_node, name, definition_location)
+
+    def class_label(self):
+        return "FunctionReturnVariable"
+        
+    def _parse_type(self, fparser_node: Function_Stmt):
+        # TODO this maybe more complicated - so far i don not see an example in the code
+        
+        type_spec = find_in_tree(fparser_node, Intrinsic_Type_Spec)
+        return_type = self._parse_intrinsic_type(type_spec)
+        
+        # is not important for return variable, but needs to be returned
+        denoted_as_optional = False
+
+        return return_type, denoted_as_optional
 
 class UsingStatement(SymbolDefinition):
     def __init__(self, fparser_node, definition_location: str):
@@ -82,15 +209,56 @@ class UsingStatement(SymbolDefinition):
         return "Using"
 
 class GenericFunctionDefinition(SymbolDefinition):
+    def __init__(self, fparser_node, definition_location):
+        super().__init__(fparser_node, definition_location)
+        self._type: FortranType = None
+        self._local_context = None
+        self._definitions = None
+
     def get_definitions(self) -> FortranDefinitions:
+        if self._definitions:
+            return self._definitions
+        
         specification = find_in_tree(self.fparser_node, Specification_Part)
         subprogram = find_in_tree(self.fparser_node, Internal_Subprogram_Part)
         location = f'[{self.class_label()} {self.key()}]'
 
-        return FortranDefinitions(location, specification, subprogram, module_dictionary=None)
+        self._definitions = FortranDefinitions(location, specification, subprogram, module_dictionary=None)
+
+        if hasattr(self, '_patch_definitions'):
+            self._definitions = self._patch_definitions(self._definitions)
+
+        return self._definitions
     
     def get_local_context(self):
-        return SubroutineFunctionContext(self.get_definitions())
+        if not self._local_context:
+            self._local_context = SubroutineFunctionContext(self.get_definitions())
+        return self._local_context
+    
+    def _get_input_args(self) -> list[FunctionArgumentForType]:
+        function_stmt = self.fparser_node.children[0]
+        arg_list = find_in_tree(function_stmt, Dummy_Arg_List)
+
+        if not arg_list:
+            return []
+        
+        local_context = self.get_local_context()
+        arg_types = []
+
+        for arg_name in arg_list.children:
+            arg_symbol: VariableDeclaration = local_context.get_symbol(arg_name.tostr().lower())
+            if not arg_symbol:
+                raise ValueError(f"Argument {arg_name} not found in function definition")
+            
+            arg_types.append(FunctionArgumentForType(
+                name=arg_symbol.key(),
+                arg_type=arg_symbol.get_type(),
+                is_optional=arg_symbol.denoted_as_optional()))
+
+        return arg_types
+
+    def get_type(self) -> FortranType:
+        raise NotImplementedError("get_type not implemented by children classes")
 
 class Subroutine(GenericFunctionDefinition):
     def __init__(self, fparser_node: Subroutine_Subprogram, definition_location: str):
@@ -103,6 +271,11 @@ class Subroutine(GenericFunctionDefinition):
 
     def class_label(self):
         return "Subroutine"
+    
+    def get_type(self) -> FortranType:
+        return FunctionType(
+            return_type=VoidType.get_instance(),
+            arg_types=self._get_input_args())
 
 class Function(GenericFunctionDefinition):
     def __init__(self, fparser_node: Function_Subprogram, definition_location: str):
@@ -118,6 +291,22 @@ class Function(GenericFunctionDefinition):
     def create_from(fparser_node, definition_location):
         if isinstance(fparser_node, Function_Subprogram):
             return Function(fparser_node, definition_location)
+        
+    def _patch_definitions(self, definitions: FortranDefinitions):
+        definitions.load_function_return_variables(self.fparser_node)
+        return definitions
+
+    def get_type(self) -> FortranType:
+        return FunctionType(
+            return_type=self._get_return_type(),
+            arg_types=self._get_input_args())
+
+    def _get_return_type(self) -> FortranType:
+        function_stmt = find_in_node(self.fparser_node, Function_Stmt)
+        suffix = find_in_node(function_stmt, Suffix)
+        return_name = find_in_tree(suffix, Name).tostr().lower()
+
+        return self.get_local_context().get_symbol(return_name).get_type()
 
 class Include(SymbolDefinition):
     def __init__(self, fparser_node: Subroutine_Subprogram, fname, definition_location: str):
@@ -210,7 +399,7 @@ class AccessModifier:
 
 
 class FortranDefinitions:
-    def __init__(self, \
+    def __init__(self,
                  definition_location: str,
                  specification: Specification_Part, subprogram: Module_Subprogram_Part, \
                  module_dictionary):
@@ -250,6 +439,12 @@ class FortranDefinitions:
         self._load_forward_imports()
 
         self._set_public_symbols()
+
+    def load_function_return_variables(self, fnode_function: Function_Subprogram):
+        function_declaration = Function.create_from(fnode_function, definition_location='not important')
+        
+        self.variables.append(FunctionReturnVariableDeclaration.create_from(
+            fnode_function, definition_location=f'[return variable of {function_declaration.key()}]'))
 
     def load(self, root: Specification_Part | Module_Subprogram_Part):
         if not root:

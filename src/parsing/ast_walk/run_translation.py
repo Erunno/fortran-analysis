@@ -7,7 +7,7 @@ from parsing.context import SubroutineFunctionContext
 from parsing.definitions import GenericFunctionDefinition
 from parsing.module_dictionary import ModuleDictionary
 
-ast_printer_dispatcher = Dispatcher()
+ast_printer_dispatcher = Dispatcher[None]()
 ast_printer_dispatcher.register(AssignmentPrinter).for_node(AssignmentNode)
 ast_printer_dispatcher.register(FunctionDefinitionPrinter).for_node(FunctionDefinitionNode).for_node(SubroutineDefinitionNode)
 ast_printer_dispatcher.register(ForLoopPrinter).for_node(ForLoopNode)
@@ -35,6 +35,21 @@ def run_translation(
     
     function_local_context = function_symbol.get_local_context()
     full_context_within_function = module_context.get_expanded(function_local_context)
+
+    variable = function_local_context.get_symbol('dtsound')
+    print(variable)
+
+    moloch_type = function_symbol.get_type()
+    print('moloch type: ', moloch_type)
+
+    psf = module_context.get_symbol('pfwsat')
+    print(psf)
+    print('pfwsat type: ', psf.get_type())
+
+    subroutine = module_context.get_symbol('getmem1d_t')
+    print(subroutine)
+    print('getmem1d_t type: ', subroutine.get_type())
+    exit()
     
     base_params = Params(context=full_context_within_function, 
                          module_dictionary=module_dict,
