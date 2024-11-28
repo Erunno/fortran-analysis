@@ -61,4 +61,11 @@ def find_in_node(node, class_type, exclude=None):
 
     if len(all) > 0:
         return all[0]
+
+def findall_in_node(node, class_type, exclude=None):
+    exclude =  _get_or_default_exclude(exclude)
     
+    if not hasattr(node, 'children'):
+        return []
+    
+    return [child for child in node.children if isinstance(child, class_type) and type(child) not in exclude]

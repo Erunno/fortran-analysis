@@ -19,7 +19,7 @@ class Params:
 THandlerReturn = TypeVar('THandlerReturn')
 class Handler[THandlerReturn]:
     def __init__(self):
-        self.dispatch: Callable[[MyAstNode | Base, Params], None] = None
+        self.dispatch: Callable[[MyAstNode | Base, Params], THandlerReturn] = None
 
     def set_dispatch(self, dispatch: Callable[[MyAstNode | Base, Params], None]):
         self.dispatch = dispatch

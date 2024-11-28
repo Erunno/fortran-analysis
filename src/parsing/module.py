@@ -26,7 +26,7 @@ class FortranModule:
         assert self.module.get_name().tostr() == self.name
 
         self.definitions = FortranDefinitions(
-            f'[module {name}]', self.specif, self.sub_program, module_dictionary)
+            f'[module {name}]',self.name ,self.specif, self.sub_program, module_dictionary)
 
         self.public_exports_context = ModulePublicExportsContext(self.definitions)
         self.module_local_context = ModuleLocalContext(self.definitions)

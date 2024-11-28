@@ -6,10 +6,13 @@ from fparser.two.Fortran2003 import Program, Module, Specification_Part, \
     Intrinsic_Type_Spec, Kind_Selector, Attr_Spec, Dimension_Attr_Spec, \
     Assumed_Shape_Spec_List, Assumed_Shape_Spec, Dummy_Arg_List, \
     Declaration_Type_Spec, Type_Name, Intent_Attr_Spec, Length_Selector, Type_Param_Value, \
-    Suffix
+    Suffix, Component_Part, Component_Decl_List, Component_Decl, Dimension_Component_Attr_Spec, \
+    Deferred_Shape_Spec_List
     
 from fparser.two.Fortran2008.type_declaration_stmt_r501 import Type_Declaration_Stmt
-from fparser.two.Fortran2008 import Attr_Spec_List
+from fparser.two.Fortran2008 import Attr_Spec_List, Component_Attr_Spec_List
+from fparser.two.Fortran2008.data_component_def_stmt_r436 import Data_Component_Def_Stmt
+from fparser.two.Fortran2008.component_attr_spec_r437 import Component_Attr_Spec
 
 from parsing.context import SubroutineFunctionContext
 from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_tree
@@ -19,11 +22,12 @@ class FortranDefinitions:
     pass
 
 class SymbolDefinition:
-    def __init__(self, fparser_node, definition_location):
+    def __init__(self, fparser_node, definition_location, definition_module: str):
         self.fparser_node = fparser_node
         self._is_public = False
         self.access_modifier = None
-        self.definition_location = definition_location
+        self.definition_location: str = definition_location
+        self._defined_in_module: str = definition_module
 
     def set_public(self, value=True):
         self._is_public = value
@@ -41,7 +45,7 @@ class SymbolDefinition:
         return not not self.access_modifier
 
     def __str__(self):
-        return f"{self.class_label()} <{self.key()}> defined in {self.definition_location}"
+        return f"{self.class_label()} <{self.key()}> defined in {self.definition_location} in module [{self._defined_in_module}]"
 
     def __repr__(self):
         return self.__str__()
@@ -49,12 +53,15 @@ class SymbolDefinition:
     def class_label(self):
         return "Symbol"
 
-    def defined_in(self):
+    def defined_in(self) -> str:
         return self.definition_location
+    
+    def defined_in_module(self) -> str:
+        return self._defined_in_module
 
 class VariableDeclaration(SymbolDefinition):
-    def __init__(self, fparser_node: Type_Declaration_Stmt, name: str, definition_location: str):
-        super().__init__(fparser_node, definition_location)
+    def __init__(self, fparser_node: Type_Declaration_Stmt, name: str, definition_location: str, definition_module: str):
+        super().__init__(fparser_node, definition_location, definition_module)
         self.name = name
 
         self.access_modifier = self._get_access_modifier()
@@ -68,12 +75,12 @@ class VariableDeclaration(SymbolDefinition):
         return find_in_tree(self.fparser_node, Access_Spec)
 
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location, definition_module: str):
         if isinstance(fparser_node, Type_Declaration_Stmt):
             decl_list = find_in_tree(fparser_node, Entity_Decl_List)
             names = [name.tostr().lower() for name in findall_in_tree(decl_list, Name, exclude=Initialization)]
 
-            return [VariableDeclaration(fparser_node, name, definition_location) for name in names]
+            return [VariableDeclaration(fparser_node, name, definition_location, definition_module) for name in names]
     
     def class_label(self):
         return "Variable"
@@ -99,11 +106,11 @@ class VariableDeclaration(SymbolDefinition):
             return_type = self._parse_intrinsic_type(type_spec)
         elif isinstance(type_spec, Declaration_Type_Spec):
             typename = find_in_tree(type_spec, Type_Name)
-            return_type = StructType(typename.tostr().lower())
+            return_type = StructType(typename.tostr().lower(), self.defined_in_module())
         else:
             raise NotImplementedError(f"Type spec {type_spec} not supported yet")
 
-        attributes = find_in_node(fparser_node, Attr_Spec_List)
+        attributes = self._load_attribute_spec_list(self.fparser_node)
 
         is_pointer, array_dims, denoted_as_optional = self._parse_attributes(attributes)
         return_type = self._wrap_base_type(return_type, is_pointer, array_dims)
@@ -125,6 +132,9 @@ class VariableDeclaration(SymbolDefinition):
         
         return intrinsic_type
 
+    def _load_attribute_spec_list(self, fnode):
+        return find_in_node(fnode, Attr_Spec_List)
+
     def _parse_attributes(self, attributes):
         is_pointer = False
         array_dims = None
@@ -135,14 +145,14 @@ class VariableDeclaration(SymbolDefinition):
         
         # TODO maybe use something better than shit tun of IFs
         for attr in attributes.children:
-            if isinstance(attr, Attr_Spec) and attr.tostr().lower() == "pointer":
+            if (isinstance(attr, Attr_Spec) or isinstance(attr, Component_Attr_Spec)) and attr.tostr().lower() == "pointer":
                 is_pointer = True
             elif isinstance(attr, Attr_Spec) and attr.tostr().lower() == "optional":
                 denoted_as_optional = True
             elif isinstance(attr, Attr_Spec) and attr.tostr().lower() == "parameter":
                 pass # parameter means constant (does not affect type)
-            elif isinstance(attr, Dimension_Attr_Spec):
-                shape_list = find_in_tree(attr, Assumed_Shape_Spec_List)
+            elif isinstance(attr, Dimension_Attr_Spec) or isinstance(attr, Dimension_Component_Attr_Spec):
+                shape_list = find_in_tree(attr, Assumed_Shape_Spec_List) or find_in_tree(attr, Deferred_Shape_Spec_List)
                 array_dims = []
 
                 for shape in shape_list.children:
@@ -152,6 +162,8 @@ class VariableDeclaration(SymbolDefinition):
                         raise NotImplementedError("Only assumed shape arrays are supported at the moment")
             elif isinstance(attr, Intent_Attr_Spec):
                 pass # intent does not affect type
+            elif isinstance(attr, Access_Spec):
+                pass # access does not affect type
             else:
                 raise NotImplementedError(f"Attribute {attr} not supported yet")
     
@@ -168,11 +180,11 @@ class VariableDeclaration(SymbolDefinition):
         return base_type
 
 class FunctionReturnVariableDeclaration(VariableDeclaration):
-    def __init__(self, fparser_node: Function_Stmt, name: str, definition_location: str):
-        super().__init__(fparser_node, name, definition_location)
+    def __init__(self, fparser_node: Function_Stmt, name: str, definition_location: str, definition_module: str):
+        super().__init__(fparser_node, name, definition_location, definition_module)
 
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location: str, definition_module: str):
         if isinstance(fparser_node, Function_Subprogram):
             fparser_node = find_in_node(fparser_node, Function_Stmt)
 
@@ -180,7 +192,7 @@ class FunctionReturnVariableDeclaration(VariableDeclaration):
             suffix = find_in_node(fparser_node, Suffix)
             name = find_in_tree(suffix, Name).tostr().lower()
 
-            return FunctionReturnVariableDeclaration(fparser_node, name, definition_location)
+            return FunctionReturnVariableDeclaration(fparser_node, name, definition_location, definition_module)
 
     def class_label(self):
         return "FunctionReturnVariable"
@@ -197,20 +209,20 @@ class FunctionReturnVariableDeclaration(VariableDeclaration):
         return return_type, denoted_as_optional
 
 class UsingStatement(SymbolDefinition):
-    def __init__(self, fparser_node, definition_location: str):
-        super().__init__(fparser_node, definition_location)
+    def __init__(self, fparser_node, definition_location: str, definition_module: str):
+        super().__init__(fparser_node, definition_location, definition_module)
 
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location: str, definition_module: str):
         if isinstance(fparser_node, Use_Stmt):
-            return UsingStatement(fparser_node, definition_location)
+            return UsingStatement(fparser_node, definition_location, definition_module)
         
     def class_label(self):
         return "Using"
 
 class GenericFunctionDefinition(SymbolDefinition):
-    def __init__(self, fparser_node, definition_location):
-        super().__init__(fparser_node, definition_location)
+    def __init__(self, fparser_node, definition_location, definition_module: str):
+        super().__init__(fparser_node, definition_location, definition_module)
         self._type: FortranType = None
         self._local_context = None
         self._definitions = None
@@ -223,7 +235,7 @@ class GenericFunctionDefinition(SymbolDefinition):
         subprogram = find_in_tree(self.fparser_node, Internal_Subprogram_Part)
         location = f'[{self.class_label()} {self.key()}]'
 
-        self._definitions = FortranDefinitions(location, specification, subprogram, module_dictionary=None)
+        self._definitions = FortranDefinitions(location, self.defined_in_module(), specification, subprogram, module_dictionary=None)
 
         if hasattr(self, '_patch_definitions'):
             self._definitions = self._patch_definitions(self._definitions)
@@ -261,13 +273,13 @@ class GenericFunctionDefinition(SymbolDefinition):
         raise NotImplementedError("get_type not implemented by children classes")
 
 class Subroutine(GenericFunctionDefinition):
-    def __init__(self, fparser_node: Subroutine_Subprogram, definition_location: str):
-        super().__init__(fparser_node, definition_location)
+    def __init__(self, fparser_node: Subroutine_Subprogram, definition_location: str, definition_module: str):
+        super().__init__(fparser_node, definition_location, definition_module)
     
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location: str, definition_module: str):
         if isinstance(fparser_node, Subroutine_Subprogram):
-            return Subroutine(fparser_node, definition_location)
+            return Subroutine(fparser_node, definition_location, definition_module)
 
     def class_label(self):
         return "Subroutine"
@@ -278,8 +290,8 @@ class Subroutine(GenericFunctionDefinition):
             arg_types=self._get_input_args())
 
 class Function(GenericFunctionDefinition):
-    def __init__(self, fparser_node: Function_Subprogram, definition_location: str):
-        super().__init__(fparser_node, definition_location)
+    def __init__(self, fparser_node: Function_Subprogram, definition_location: str, definition_module: str):
+        super().__init__(fparser_node, definition_location, definition_module)
 
         func_stmt = find_in_tree(fparser_node, Function_Stmt)
         self.name = func_stmt.items[1].tostr().lower()
@@ -288,9 +300,9 @@ class Function(GenericFunctionDefinition):
         return "Function"
     
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location: str, definition_module: str):
         if isinstance(fparser_node, Function_Subprogram):
-            return Function(fparser_node, definition_location)
+            return Function(fparser_node, definition_location, definition_module)
         
     def _patch_definitions(self, definitions: FortranDefinitions):
         definitions.load_function_return_variables(self.fparser_node)
@@ -309,7 +321,7 @@ class Function(GenericFunctionDefinition):
         return self.get_local_context().get_symbol(return_name).get_type()
 
 class Include(SymbolDefinition):
-    def __init__(self, fparser_node: Subroutine_Subprogram, fname, definition_location: str):
+    def __init__(self, fparser_node: Subroutine_Subprogram, fname, definition_location: str, definition_module: str):
         self.fname = fname
         super().__init__(fparser_node, definition_location)
 
@@ -320,30 +332,30 @@ class Include(SymbolDefinition):
         return "Include"
 
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location, definition_module: str):
         if isinstance(fparser_node, Subroutine_Subprogram):
             incl_fnames = findall_in_tree(fparser_node, Include_Filename)
             if incl_fnames: 
-                return [Include(fparser_node, fname.tostr(), definition_location) for fname in incl_fnames]
+                return [Include(fparser_node, fname.tostr(), definition_location, definition_module) for fname in incl_fnames]
             
 class Interface(SymbolDefinition):
-    def __init__(self, fparser_node: Interface_Block, definition_location: str):
-        super().__init__(fparser_node, definition_location)
+    def __init__(self, fparser_node: Interface_Block, definition_location: str, definition_module: str):
+        super().__init__(fparser_node, definition_location, definition_module)
         
         interface_stmt = find_in_tree(fparser_node, Interface_Stmt)
         self.name = find_in_tree(interface_stmt, Name).tostr().lower()
 
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location: str, definition_module: str):
         if isinstance(fparser_node, Interface_Block):
-            return Interface(fparser_node, definition_location)
+            return Interface(fparser_node, definition_location, definition_module)
         
     def class_label(self):
         return "Interface"
 
 class ProxySymbolDefinition(SymbolDefinition):
-    def __init__(self, name, definition_location, module_dictionary, usings: list[UsingStatement]):
-        super().__init__(None, definition_location)
+    def __init__(self, name, definition_location: str, definition_module: str, module_dictionary, usings: list[UsingStatement]):
+        super().__init__(None, definition_location, definition_module)
 
         self.name = name
         self._is_public = True
@@ -351,28 +363,111 @@ class ProxySymbolDefinition(SymbolDefinition):
         self.module_dictionary = module_dictionary
         self.usings = usings
 
+        self._loaded_modules = [] 
+        self._inner_symbol: SymbolDefinition = None
+
     def class_label(self):
         return "ProxyForwardSymbol"
 
+    def _fetch_inner_symbol(self):
+        if self._inner_symbol:
+            return self._inner_symbol
+
+        for module in self._fetch_modules():
+            symbol = module.public_exports_context.get_symbol(self.name)
+            if symbol:
+                self._inner_symbol = symbol
+                return symbol
+            
+        raise ValueError(f"Proxy Symbol {self} not found in any of the modules")
+
+    def _fetch_modules(self):
+        if self._loaded_modules:
+            return self._loaded_modules
+        
+        self._loaded_modules = [self.module_dictionary.get_module(using.key()) for using in self.usings]
+        return self._loaded_modules
+    
+    def __getattr__(self, item):
+        inner_symbol = self._fetch_inner_symbol()
+        return getattr(inner_symbol, item)
+
+class PropertyOfTypeDefinition(VariableDeclaration):
+    def __init__(self, name, fparser_node, definition_location: str, definition_module: str):
+        super().__init__(fparser_node, name, definition_location, definition_module)
+
+    def class_label(self):
+        return "Property of Type"
+    
+    @staticmethod
+    def create_from(fparser_node, definition_location: str, definition_module: str):
+        
+        if not isinstance(fparser_node, Data_Component_Def_Stmt):
+            raise ValueError(f"PropertyOfTypeDefinition can only be created from Data_Component_Def_Stmt, got {fparser_node}")
+        
+        decl_list = find_in_tree(fparser_node, Component_Decl_List)
+        
+        result = []
+
+        for decl in decl_list.children:
+            if not isinstance(decl, Component_Decl):
+                raise NotImplementedError(f"Component decl {decl} not supported yet")
+            
+            name = find_in_tree(decl, Name).tostr().lower()
+            prop = PropertyOfTypeDefinition(name, fparser_node, definition_location, definition_module)
+            
+            result.append(prop)
+        
+        return result
+    
+    def _load_attribute_spec_list(self, fnode):
+        return find_in_node(self.fparser_node, Component_Attr_Spec_List)
+            
 class Type(SymbolDefinition):
-    def __init__(self, fparser_node: Derived_Type_Def, definition_location: str):
-        super().__init__(fparser_node, definition_location)
+    def __init__(self, fparser_node: Derived_Type_Def, definition_location: str, definition_module: str):
+        super().__init__(fparser_node, definition_location, definition_module)
 
         type_stmt = find_in_tree(fparser_node, Derived_Type_Stmt)
         self.name = type_stmt.items[1].tostr().lower()
 
+        self._properties: list[VariableDeclaration] = None
+
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location: str, definition_module: str):
         if isinstance(fparser_node, Derived_Type_Def):
-            return Type(fparser_node, definition_location)
+            return Type(fparser_node, definition_location, definition_module)
         
     def class_label(self):
         return "Type"
+    
+    def get_properties(self):
+        if self._properties:
+            return self._properties
+        
+        component_part = find_in_node(self.fparser_node, Component_Part)
+
+        self._properties = []
+        definition_location = f"[Property of {self.key()}]"
+
+        for data_component in component_part.children:
+            if not isinstance(data_component, Data_Component_Def_Stmt):
+                raise NotImplementedError(f"Component definition {data_component} not supported yet")
+
+            properties_defined_on_a_line = PropertyOfTypeDefinition.create_from(
+                data_component, definition_location, self.defined_in_module())
+            
+            self._properties.extend(properties_defined_on_a_line)
+            
+        return self._properties
+
+    def find_property(self, key):
+        return next((prop for prop in self.get_properties() if prop.key() == key), None)
 
 class AccessModifier:
-    def __init__(self, fparser_node: Access_Stmt, definition_location: str):
+    def __init__(self, fparser_node: Access_Stmt, definition_location: str, definition_module: str):
         self.fparser_node = fparser_node
         self.definition_location = definition_location
+        self.definition_module = definition_module
 
     def defines_public(self):
         modifier, _ = self.fparser_node.items
@@ -391,21 +486,23 @@ class AccessModifier:
         _, access_spec_list = self.fparser_node.items
 
         return [name.tostr().lower() for name in access_spec_list.items]
+    
 
     @staticmethod
-    def create_from(fparser_node, definition_location):
+    def create_from(fparser_node, definition_location: str, definition_module: str):
         if isinstance(fparser_node, Access_Stmt):
-            return AccessModifier(fparser_node, definition_location)
+            return AccessModifier(fparser_node, definition_location, definition_module)
 
 
 class FortranDefinitions:
     def __init__(self,
-                 definition_location: str,
+                 definition_location: str, definition_module: str,
                  specification: Specification_Part, subprogram: Module_Subprogram_Part, \
                  module_dictionary):
         
         self.module_dictionary = module_dictionary
         self.definition_location = definition_location
+        self.definition_module = definition_module
 
         self.variables: list[VariableDeclaration] = []
         self.using_statements: list[UsingStatement] = []
@@ -441,10 +538,15 @@ class FortranDefinitions:
         self._set_public_symbols()
 
     def load_function_return_variables(self, fnode_function: Function_Subprogram):
-        function_declaration = Function.create_from(fnode_function, definition_location='not important')
+        function_name = Function.create_from(
+            fnode_function, 
+            definition_location='not important',
+            definition_module='not important').key()
         
         self.variables.append(FunctionReturnVariableDeclaration.create_from(
-            fnode_function, definition_location=f'[return variable of {function_declaration.key()}]'))
+            fnode_function,
+            definition_location=f'[Return variable of {function_name}]',
+            definition_module=self.definition_module))
 
     def load(self, root: Specification_Part | Module_Subprogram_Part):
         if not root:
@@ -452,7 +554,7 @@ class FortranDefinitions:
         
         for child in root.children:
             for builder, container in self.builders:
-                symbol = builder(child, self.definition_location)
+                symbol = builder(child, self.definition_location, self.definition_module)
                 if not symbol:
                     continue
 
@@ -479,7 +581,7 @@ class FortranDefinitions:
                 if symbol:
                     continue 
                 
-                forward_import = ProxySymbolDefinition(key, self.definition_location,
+                forward_import = ProxySymbolDefinition(key, self.definition_location, self.definition_module,
                                                        self.module_dictionary, self.using_statements)
                 self.forward_imports.append(forward_import)
 
