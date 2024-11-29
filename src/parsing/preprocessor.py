@@ -4,7 +4,7 @@ import re
 class Preprocessor:
     def __init__(self, file_path):
         self.defines = {
-            '__FILE__': f'"{file_path}"'
+            '__FILE__': f"'{file_path}'"
         }
 
     def add_define(self, key, value='default'):
@@ -80,7 +80,14 @@ class Preprocessor:
                 return line
             
             def are_we_skipping_lines(skip_next_line_stack):
-                return not any(skip_next_line_stack)
+                return any(skip_next_line_stack)
+            
+            def is_format_directive(line):
+                return re.match(r'^\s*\d+\s+format', line) is not None
+            
+            def format_directive(line):
+                # comment the line out
+                return '! ' + line
 
             handlers = {
                 '#if': lambda parts: handle_ifdef(parts[1]),
@@ -98,8 +105,11 @@ class Preprocessor:
             
             if directive in handlers:
                 handlers[directive](parts)
-            elif are_we_skipping_lines(skip_next_line_stack):
+            elif not are_we_skipping_lines(skip_next_line_stack):
                 line = expand_using_defines(line)
+
+                if is_format_directive(line):
+                    line = format_directive(line)
 
                 if fuse_line_to_previous_line:
                     output_lines[-1] = output_lines[-1].rstrip('&') + ' ' + line.lstrip().lstrip('&')

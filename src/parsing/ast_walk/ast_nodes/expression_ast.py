@@ -68,7 +68,7 @@ class DataRefNode(MyAstNode[Data_Ref]):
     def __init__(self, fnode: Data_Ref):
         super().__init__(fnode)
 
-        self.object_name = fnode.children[0].tostr().lower()
+        self.struct_variable_name = fnode.children[0].tostr().lower()
         self.property_fnode = fnode.children[1]
 
         # this might not work as expected ¯\_(ツ)_/¯

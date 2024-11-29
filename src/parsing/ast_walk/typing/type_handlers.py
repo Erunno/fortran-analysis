@@ -3,6 +3,8 @@
 from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
 from parsing.ast_walk.dispatcher import Handler, Params
 from parsing.typing import ArrayType, FortranType, FunctionType, PointerType, PrimitiveType, StructType
+from parsing.ast_walk.context_fetch.context_fetch_dispatcher import symbol_fetch_dispatcher  
+
 import re
 
 class _TypeHelpers:
@@ -101,12 +103,19 @@ class LiteralTyper(Handler[FortranType]):
 
         if re.match(r'^-?\d+$', val):
             return_type = PrimitiveType.get_integer_instance()
-            return_type.add_attribute('kind', 'defaultLiteralKind')
+            return_type.add_attribute('kind', PrimitiveType.default_int_kind())
+
         elif re.match(r'^-?\d*\.\d+', val):
             return_type = PrimitiveType.get_real_instance()
 
-        elif re.match(r'^"."$', val):
+        elif re.match(r"^'.'$", val):
             return_type = PrimitiveType.get_character_instance()
+            
+        elif re.match(r"^'.*'$", val):
+            return_type = PrimitiveType.get_string_instance()
+
+        elif val.lower() == '.true.' or val.lower() == '.false.':
+            return_type = PrimitiveType.get_logical_instance()
 
         else:
             raise ValueError(f"Unknown literal type for value {node.value}")
@@ -116,15 +125,8 @@ class LiteralTyper(Handler[FortranType]):
 
         return return_type
 
-                
 
 class DataRefTyper(ReferenceTyper):
     def _get_node_type(self, node: DataRefNode, params: Params):
-        struct_type: StructType = params.context.get_symbol(node.object_name).get_type()
-        
-        if not isinstance(struct_type, StructType):
-            raise ValueError(f"Data reference to non-struct type {struct_type}")
-        
-        struct_property_symbol = struct_type.get_property(node.property_name, params.module_dictionary)
-        return struct_property_symbol.get_type()
-    
+        symbol = symbol_fetch_dispatcher.dispatch(node=node, params=params)
+        return symbol.get_type()

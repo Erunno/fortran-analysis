@@ -1,8 +1,10 @@
 from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Handler, Params
+from parsing.ast_walk.context_fetch.context_fetch_dispatcher import symbol_fetch_dispatcher
 from parsing.ast_walk.typing.typing_dispatcher import type_dispatcher
 from parsing.context import SubroutineFunctionContext
+from parsing.definitions import GenericFunctionDefinition, Interface
 
 class AssignmentPrinter(Handler):
     def handle(self, node: AssignmentNode , params: Params):
@@ -29,7 +31,15 @@ class FunctionDefinitionPrinter(Handler):
 
 class CallSubroutinePrinter(Handler):
     def handle(self, node: CallNode, params: Params):
-        print(f"Called: <{node.called_function_name}>")
+        args_fnodes = node.get_argument_expression_fnodes()
+        args_types = [type_dispatcher.dispatch(arg_fnode, params) for arg_fnode in args_fnodes]
+
+        call_identifier_symbol = symbol_fetch_dispatcher.dispatch(
+            node=node.get_call_identifier_fnode(), params=params)
+        
+        function_symbol = call_identifier_symbol.get_actual_function_symbol(args_types)
+
+        print(f"\033[93mRequested <{node.called_function_name}> and called <{function_symbol}>\033[0m")
         
 class ForLoopPrinter(Handler):
     def handle(self, node: ForLoopNode, params: Params):
@@ -98,4 +108,4 @@ class LiteralPrinter(Handler):
 
 class DataRefPrinter(Handler):
     def handle(self, node: DataRefNode, params: Params):
-        print(f"Data Ref Node: <{node.object_name}>%<{node.property_name}>")
+        print(f"Data Ref Node: <{node.struct_variable_name}>%<{node.property_name}>")
