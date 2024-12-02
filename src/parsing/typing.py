@@ -131,6 +131,7 @@ class PrimitiveType(FortranType):
         # from, to
         ('rk8', 'rkx'),
         (default_int_kind(), 'ik4'),
+        (default_int_kind(), 'ik8'),
     ]
 
     _number_types = ['integer', 'real', any_number_name()]
@@ -328,6 +329,9 @@ class FunctionType(FortranType):
         if len(arg_types) < self._first_optional_index:
             return False
         
+        if len(arg_types) > len(self.arg_types):
+            return False
+
         for self_arg, other_arg in zip(self.arg_types, arg_types):
             if not self_arg.arg_type.is_equivalent(other_arg):
                 return False

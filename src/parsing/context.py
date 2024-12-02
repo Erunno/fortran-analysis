@@ -8,25 +8,31 @@ class FortranDefinitions:
     pass
 
 class FortranContext:
-    def get_symbol(symbol_name: str):
+    def get_symbol(self, symbol_name: str):
         raise NotImplementedError("This method should be implemented by subclasses")
 
-    def get_symbol():
+    def get_operator_symbols(self, op: str):
         raise NotImplementedError("This method should be implemented by subclasses")
     
 class ModulePublicExportsContext(FortranContext):
     def __init__(self, definitions: FortranDefinitions):
-        self.definitions = definitions
+        self.definitions: FortranDefinitions = definitions
 
     def get_symbol(self, symbol_name: str):
         return self.definitions.find_public_symbol(symbol_name)
-    
+
+    def get_operator_symbols(self, op: str):
+        return self.definitions.find_public_operators(op)
+
 class ModuleLocalContext(FortranContext):
     def __init__(self, definitions: FortranDefinitions):
-        self.definitions = definitions
+        self.definitions: FortranDefinitions = definitions
     
     def get_symbol(self, symbol_name: str):
         return self.definitions.find_local_symbol(symbol_name)
+    
+    def get_operator_symbols(self, op: str):
+        return self.definitions.find_all_operators(op)
     
 class ModuleImportedContext():
     def __init__(self, definitions: FortranDefinitions, module_dictionary):
@@ -53,6 +59,16 @@ class ModuleImportedContext():
         
         return returned_symbols[0] if returned_symbols else None
 
+    def get_operator_symbols(self, op: str):
+        self._fetch_modules()
+        returned_symbols = []
+
+        for module in reversed(self.modules):
+            symbols = module.public_exports_context.get_operator_symbols(op)
+            returned_symbols.extend(symbols)
+        
+        return returned_symbols
+
     def _fetch_modules(self):
         if self.modules is not None:
             return
@@ -67,6 +83,9 @@ class SubroutineFunctionContext(FortranContext):
 
     def get_symbol(self, symbol_name: str):
         return self.subroutine_definitions.find_local_symbol(symbol_name)
+    
+    def get_operator_symbols(self, op: str):
+        return []
 
 class ChainedContext:
     def __init__(self, contexts: list[FortranContext]):
@@ -87,6 +106,11 @@ class ChainedContext:
             return None
         return method
 
-    
-
-    
+    def get_operator_symbols(self, op: str):
+        symbols = []
+        
+        for context in reversed(self.contexts):
+            context_ops = context.get_operator_symbols(op) or []
+            symbols.extend(context_ops)
+            
+        return symbols    

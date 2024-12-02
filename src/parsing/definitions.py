@@ -9,7 +9,7 @@ from fparser.two.Fortran2003 import Program, Module, Specification_Part, \
     Suffix, Component_Part, Component_Decl_List, Component_Decl, Dimension_Component_Attr_Spec, \
     Deferred_Shape_Spec_List, Procedure_Stmt, Subroutine_Body,  Generic_Spec, \
     Specific_Binding, Type_Bound_Procedure_Part, Contains_Stmt, Int_Literal_Constant, \
-    Prefix, Prefix_Spec
+    Prefix, Prefix_Spec, Extended_Intrinsic_Op
     
 
 from fparser.two.Fortran2008 import Procedure_Name_List    
@@ -413,10 +413,89 @@ class Interface(SymbolDefinition):
 class OperatorRedefinition(SymbolDefinition):
     def __init__(self, fparser_node: Interface_Block, definition_location: str, definition_module: str):
         super().__init__(fparser_node, definition_location, definition_module)
-        self.name = '|some operator redefinition|'
+        self._operator_sign: str = None
+        self.module_dictionary = None
+        self._operator_functions = None
+        self._operator_function_names = None
+
+        self.name = OperatorRedefinition.make_key(self.operator_sign())
 
     def class_label(self):
         return "OperatorRedefinition"
+
+    def operator_sign(self):
+        return self._fetch_operator_sign()
+    
+    def defines_operator_for(self, left_type, right_type):
+        operator_functions = self._fetch_operator_functions()
+        
+        return any([f.get_type().can_be_called_with([left_type, right_type]) for f in operator_functions])
+    
+    def get_function_symbol_for_types(self, left_type, right_type):
+        operator_functions = self._fetch_operator_functions()
+        
+        possible_functions = [f for f in operator_functions if f.get_type().can_be_called_with([left_type, right_type])]
+        
+        if len(possible_functions) > 1:
+            raise ValueError(f"Operator {self} has more than one function that can be called with arguments {left_type}, {right_type}")
+        
+        if len(possible_functions) == 0:
+            raise ValueError(f"Operator {self} has no function that can be called with arguments {left_type}, {right_type}")
+        
+        return possible_functions[0]
+
+    def _set_module_dictionary(self, module_dictionary):
+        self.module_dictionary = module_dictionary
+    
+    def _fetch_operator_sign(self):
+        if self._operator_sign:
+            return self._operator_sign
+        
+        operator_stmt = find_in_node(self.fparser_node, Interface_Stmt)
+        intrinsic_op = find_in_tree(operator_stmt, Extended_Intrinsic_Op)
+
+        if intrinsic_op:
+            self._operator_sign = intrinsic_op.tostr()
+        else:
+            assignment_op = find_in_tree(operator_stmt, Generic_Spec).items[1]
+            self._operator_sign = str(assignment_op)
+
+        return self._operator_sign
+        
+
+    def _fetch_operator_functions(self) -> list[GenericFunctionDefinition]:
+        if self._operator_functions:
+            return self._operator_functions
+        
+        self_module = self.module_dictionary.get_module(self.defined_in_module())
+        self._operator_functions = [self_module.module_context.get_symbol(name) for name in self._fetch_operator_function_names()]
+
+        return self._operator_functions
+
+    def _fetch_operator_function_names(self) -> list[str]:
+        if self._operator_function_names:
+            return self._operator_function_names
+        
+
+        procedure_stmts = findall_in_node(self.fparser_node, Procedure_Stmt)
+
+        if len(self.fparser_node.children) - 2 != len(procedure_stmts):
+            raise ValueError(f"Operator {self} does not support non-procedure symbols")
+        
+        name_lists = [find_in_tree(procedure_stmt, Procedure_Name_List) for procedure_stmt in procedure_stmts]
+        names = [[name.tostr().lower() for name in findall_in_tree(name_list, Name)] for name_list in name_lists]
+        
+        self._operator_function_names = [name for sublist in names for name in sublist]
+        return self._operator_function_names
+
+    @staticmethod
+    def make_key(op: str):
+        # the format is defined in fparser
+
+        if 'operator' in op or 'assignment' in op:
+            return op
+
+        return f"operator({op})" if op != '=' else "assignment(=)"
 
     @staticmethod
     def create_from(fparser_node, definition_location: str, definition_module: str):
@@ -699,6 +778,9 @@ class FortranDefinitions:
         if subprogram:
             self.load(subprogram)
 
+        if definition_module == 'mod_date':
+            pass
+
         self._load_forward_imports()
 
         self._set_public_symbols()
@@ -719,7 +801,7 @@ class FortranDefinitions:
                 if isinstance(symbol, AccessModifier) and symbol.is_global():
                     self.defining_public = symbol.defines_public()
 
-                if isinstance(symbol, Interface) or isinstance(symbol, Type):
+                if isinstance(symbol, (Interface, Type, OperatorRedefinition)):
                     symbol._set_module_dictionary(self.module_dictionary)
 
                 symbols = [symbol] if not isinstance(symbol, list) else symbol 
@@ -739,7 +821,9 @@ class FortranDefinitions:
 
             for key in access_modif.get_modified_symbol_keys():
                 symbol = self.find_symbol(key)
-                if symbol:
+                ops = self.find_all_operators(key)
+
+                if symbol or len(ops) > 0:
                     continue 
                 
                 forward_import = ProxySymbolDefinition(key, self.definition_location, self.definition_module,
@@ -776,6 +860,20 @@ class FortranDefinitions:
     def get_forward_imports(self):
         return self.forward_imports
 
+    def get_public_operator_redefinitions(self):
+        return [op for op in self.operator_redefinitions if op.is_public()]
+    
+    def get_all_operator_redefinitions(self):
+        return [s for s in self.operator_redefinitions]
+
+    def find_public_operators(self, op_str: str):
+        op_key = OperatorRedefinition.make_key(op_str)
+        return [op for op in self.get_public_operator_redefinitions() if op.key() == op_key]
+
+    def find_all_operators(self, op_str: str):
+        op_key = OperatorRedefinition.make_key(op_str)
+        return [op for op in self.get_all_operator_redefinitions() if op.key() == op_key]
+
     def get_public_symbols(self):
         return [symbol for symbol in self.get_all_symbols() if symbol.is_public()]
     
@@ -800,5 +898,10 @@ class FortranDefinitions:
                 continue
 
             for key in acc_modifier.get_modified_symbol_keys():
-                symbol = self.find_symbol(key)
-                symbol.set_public()
+                symbols = self.find_symbol(key) or self.find_all_operators(key)
+                
+                symbols = [symbols] if not isinstance(symbols, list) else symbols
+
+                for symbol in symbols:
+                    symbol.set_public(value=True)
+
