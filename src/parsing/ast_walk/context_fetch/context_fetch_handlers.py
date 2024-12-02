@@ -1,6 +1,6 @@
 
 
-from parsing.ast_walk.ast_nodes.expression_ast import _Helpers, DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
+from parsing.ast_walk.ast_nodes.expression_ast import _Helpers, DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
 from parsing.ast_walk.ast_nodes.my_ats_node import ProcedureDesignatorNode
 from parsing.ast_walk.context_fetch.intrinsic_func import IntrinsicFunctionsDefinition
 from parsing.ast_walk.dispatcher import Handler, Params
@@ -53,10 +53,6 @@ class StructReferenceSymbolFetcher(Handler[SymbolDefinition]):
 
 class StructMethodCallContextFetcher(Handler[SymbolDefinition]):
     def handle(self, node: ProcedureDesignatorNode, params: Params):
-        
-        if node.property_name == 'check':
-            pass
-
         left_symbol = self.dispatch(node=node.left_ref_fnode(), params=params)
         left_symbol_type: StructType = left_symbol.get_type()
 
@@ -69,3 +65,6 @@ class StructMethodCallContextFetcher(Handler[SymbolDefinition]):
         return left_symbol_type.get_property(node.property_name, params.module_dictionary)
     
 
+class PartRefContextFetcher(Handler[SymbolDefinition]):
+    def handle(self, node: PartRefNode, params: Params):
+        return params.context.get_symbol(node.ref_name)

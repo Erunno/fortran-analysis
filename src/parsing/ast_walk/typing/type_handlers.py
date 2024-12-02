@@ -1,6 +1,6 @@
 
 
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
+from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
 from parsing.ast_walk.dispatcher import Handler, Params
 from parsing.definitions import OperatorRedefinition
 from parsing.typing import ArrayType, FortranType, FunctionType, PointerType, PrimitiveType, StructType
@@ -41,7 +41,7 @@ class ParenthesisTyper(Handler[FortranType]):
         return self.dispatch(node=node.inner_expr, params=params)
 
 class ReferenceTyper(Handler[FortranType]):
-    def handle(self, node: ReferenceNode | DataRefNode, params: Params) -> FortranType:
+    def handle(self, node: ReferenceNode | DataRefNode | PartRefNode, params: Params) -> FortranType:
         symbol_type = self._get_node_type(node, params)
 
         if isinstance(symbol_type, FunctionType):
@@ -158,5 +158,10 @@ class LiteralTyper(Handler[FortranType]):
 
 class DataRefTyper(ReferenceTyper):
     def _get_node_type(self, node: DataRefNode, params: Params):
+        symbol = symbol_fetch_dispatcher.dispatch(node=node, params=params)
+        return symbol.get_type()
+    
+class PartRefTyper(ReferenceTyper):
+    def _get_node_type(self, node: PartRefNode, params: Params):
         symbol = symbol_fetch_dispatcher.dispatch(node=node, params=params)
         return symbol.get_type()

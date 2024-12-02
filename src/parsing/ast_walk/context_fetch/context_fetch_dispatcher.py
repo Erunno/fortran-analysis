@@ -1,8 +1,8 @@
-from parsing.ast_walk.context_fetch.context_fetch_handlers import IntrinsicFunctionContextFetcher, NameContextFetcher, ParenthesisContextFetcher, ReferenceContextFetcher, StructMethodCallContextFetcher, StructReferenceSymbolFetcher
+from parsing.ast_walk.context_fetch.context_fetch_handlers import IntrinsicFunctionContextFetcher, NameContextFetcher, ParenthesisContextFetcher, PartRefContextFetcher, ReferenceContextFetcher, StructMethodCallContextFetcher, StructReferenceSymbolFetcher
 from parsing.ast_walk.dispatcher import Dispatcher
 from parsing.definitions import SymbolDefinition
 from parsing.typing import FortranType
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
+from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, ProcedureDesignatorNode, SubroutineDefinitionNode, WriteStdoutNode
 
 symbol_fetch_dispatcher = Dispatcher[SymbolDefinition]()
@@ -13,3 +13,4 @@ symbol_fetch_dispatcher.register(NameContextFetcher).for_node(NameNode)
 symbol_fetch_dispatcher.register(IntrinsicFunctionContextFetcher).for_node(IntrinsicFunctionNode)
 symbol_fetch_dispatcher.register(StructReferenceSymbolFetcher).for_node(DataRefNode)
 symbol_fetch_dispatcher.register(StructMethodCallContextFetcher).for_node(ProcedureDesignatorNode)
+symbol_fetch_dispatcher.register(PartRefContextFetcher).for_node(PartRefNode)

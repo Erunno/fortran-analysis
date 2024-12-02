@@ -90,3 +90,5 @@ class PartRefNode(MyAstNode[Part_Ref]):
         super().__init__(fnode)
         self.ref_name = fnode.children[0].tostr().lower()
     
+    def indexes_to_array_are_slices(self):
+        return _Helpers.indexes_to_array_in_reference_are_slices(self.fnode)
