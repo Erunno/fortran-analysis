@@ -28,6 +28,8 @@ class IntrinsicFunctionContextFetcher(Handler[SymbolDefinition]):
         'exp': IntrinsicFunctionsDefinition.get_exp(),
         'maxval': IntrinsicFunctionsDefinition.get_maxval(),
         'minval': IntrinsicFunctionsDefinition.get_minval(),
+        'int': IntrinsicFunctionsDefinition.get_int(),
+        'mod': IntrinsicFunctionsDefinition.get_mod(),
     }
 
     def handle(self, node: IntrinsicFunctionNode, params: Params) -> SymbolDefinition:
@@ -64,7 +66,6 @@ class StructMethodCallContextFetcher(Handler[SymbolDefinition]):
         
         return left_symbol_type.get_property(node.property_name, params.module_dictionary)
     
-
 class PartRefContextFetcher(Handler[SymbolDefinition]):
     def handle(self, node: PartRefNode, params: Params):
         return params.context.get_symbol(node.ref_name)

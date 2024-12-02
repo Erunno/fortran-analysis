@@ -17,6 +17,7 @@ class AssignmentNode(MyAstNode[Assignment_Stmt]):
         super().__init__(fnode)
         self.target_fnode = fnode.children[0]
         self.source_fnode = fnode.children[2]
+        self.operator_sign = '='
 
 FunSub = TypeVar('FunSub', Subroutine_Subprogram, Function_Subprogram)
 class FuncSubBaseNode(MyAstNode[FunSub]):

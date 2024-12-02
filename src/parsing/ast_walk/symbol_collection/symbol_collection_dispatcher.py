@@ -1,0 +1,24 @@
+
+from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode
+from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, SubroutineDefinitionNode, WriteStdoutNode
+from parsing.ast_walk.dispatcher import Dispatcher
+from parsing.ast_walk.symbol_collection.symbol_collection import SymbolCollection
+from parsing.ast_walk.symbol_collection.symbol_collection_handlers import AssignmentCollector, CallSubroutineCollector, DataRefCollector, ForLoopCollector, FunctionDefinitionCollector, IfBlockCollector, IntrinsicFunctionCollector, LiteralCollector, NameCollector, OperatorCollector, ParenthesisCollector, PartRefCollector, WriteStdoutCollector
+
+
+collectors_dispatcher = Dispatcher[SymbolCollection]()
+
+collectors_dispatcher.register(AssignmentCollector).for_node(AssignmentNode)
+collectors_dispatcher.register(FunctionDefinitionCollector).for_node(FunctionDefinitionNode)
+collectors_dispatcher.register(FunctionDefinitionCollector).for_node(SubroutineDefinitionNode)
+collectors_dispatcher.register(CallSubroutineCollector).for_node(CallNode)
+collectors_dispatcher.register(ForLoopCollector).for_node(ForLoopNode)
+collectors_dispatcher.register(IfBlockCollector).for_node(IfBlockNode)
+collectors_dispatcher.register(WriteStdoutCollector).for_node(WriteStdoutNode)
+collectors_dispatcher.register(OperatorCollector).for_node(OperatorNode)
+collectors_dispatcher.register(ParenthesisCollector).for_node(ParenthesisNode)
+collectors_dispatcher.register(NameCollector).for_node(NameNode)
+collectors_dispatcher.register(IntrinsicFunctionCollector).for_node(IntrinsicFunctionNode)
+collectors_dispatcher.register(LiteralCollector).for_node(LiteralNode)
+collectors_dispatcher.register(DataRefCollector).for_node(DataRefNode)
+collectors_dispatcher.register(PartRefCollector).for_node(PartRefNode)

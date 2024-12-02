@@ -69,61 +69,9 @@ class NameTyper(Handler[FortranType]):
         return symbol.get_type()
 
 class IntrinsicFunctionTyper(Handler[FortranType]):
-
     def handle(self, node: IntrinsicFunctionNode, params: Params) -> FortranType:
-        function_parser = self._get_return_type_parser(node.function_name)
-
-        if not function_parser:
-            raise ValueError(f"Undefined intrinsic function {node.function_name}")       
-        
-        return function_parser(node, params)
-    
-    def _get_real_ret_type(self, node: IntrinsicFunctionNode, _):
-        real = PrimitiveType.get_real_instance()
-        real = self._extend_type_with_kind(real, node)    
-        
-        return real
-
-    def _get_int_ret_type(self, node: IntrinsicFunctionNode, _):
-        int = PrimitiveType.get_integer_instance()
-        int = self._extend_type_with_kind(int, node)
-    
-        return int
-
-    def _extend_type_with_kind(self, type: PrimitiveType, node: IntrinsicFunctionNode):
-        if len(node.call_args_exprs) > 1:
-            kind = node.call_args_exprs[1].tostr().lower()
-            return type.with_attribute('kind', kind) 
-        
-        return type
-
-    def _get_exp_ret_type(self, node: IntrinsicFunctionNode, params: Params):
-        return self.dispatch(node=node.call_args_exprs[0], params=params)
-    
-    def _get_minmax_ret_type(self, node: IntrinsicFunctionNode, params: Params):
-        inner_type = self.dispatch(node=node.call_args_exprs[0], params=params)
-        
-        arr_elem_type = _TypeHelpers.get_array_elem_type(inner_type)
-        if arr_elem_type:
-            return arr_elem_type
-        
-        raise ValueError(f"Undefined type for min/max function {inner_type}")
-
-    def _get_mod_ret_type(self, node: IntrinsicFunctionNode, params: Params):
-        arg1_type = self.dispatch(node=node.call_args_exprs[0], params=params)
-        arg2_type = self.dispatch(node=node.call_args_exprs[1], params=params)
-
-        return arg1_type.get_unified_with(arg2_type)
-
-    def _get_return_type_parser(self, name):
-        return {
-            'real': self._get_real_ret_type,
-            'exp': self._get_exp_ret_type,
-            'maxval': self._get_minmax_ret_type,
-            'minval': self._get_minmax_ret_type,
-            'int': self._get_int_ret_type,
-            'mod': self._get_mod_ret_type,
-        }.get(name, None)
+        function_symbol = symbol_fetch_dispatcher.dispatch(node=node, params=params)
+        return function_symbol.get_type().return_type
 
 
 class LiteralTyper(Handler[FortranType]):

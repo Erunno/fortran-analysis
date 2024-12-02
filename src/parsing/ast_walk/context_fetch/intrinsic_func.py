@@ -20,6 +20,9 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
 
     def get_actual_function_symbol(self):
         return self
+    
+    def get_type(self):
+        return self._type
 
     @staticmethod
     def get_real():
@@ -33,6 +36,17 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
 
         return IntrinsicFunctionsDefinition('real', type)
 
+    @staticmethod
+    def get_int():
+        type = FunctionType(
+            return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+            arg_types=[
+                FunctionArgumentForType('a', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('kind', PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('int', type)
 
     @staticmethod
     def get_exp():
@@ -66,3 +80,16 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
         )
 
         return IntrinsicFunctionsDefinition('minval', type)
+
+    @staticmethod
+    def get_mod():
+        type = FunctionType(
+            return_type=PrimitiveType.get_any_number_instance(),
+            arg_types=[
+                FunctionArgumentForType('a', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('p', PrimitiveType.get_any_number_instance(), is_optional=False)
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('mod', type)
+    

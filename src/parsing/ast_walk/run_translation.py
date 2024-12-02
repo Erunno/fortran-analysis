@@ -6,6 +6,8 @@ from parsing.ast_walk.test_print.nodes_printer import AssignmentPrinter, CallSub
 from parsing.context import SubroutineFunctionContext
 from parsing.definitions import GenericFunctionDefinition
 from parsing.module_dictionary import ModuleDictionary
+from parsing.ast_walk.symbol_collection.symbol_collection_dispatcher import collectors_dispatcher
+
 
 ast_printer_dispatcher = Dispatcher[None]()
 ast_printer_dispatcher.register(AssignmentPrinter).for_node(AssignmentNode)
@@ -56,6 +58,10 @@ def run_translation(
                          call_stack=[function_symbol])
 
     ast_printer_dispatcher.dispatch(node=function_fnode, params=base_params)
+
+    print ('\ncollection\n')
+
+    collectors_dispatcher.dispatch(node=function_fnode, params=base_params)
 
     print(f"Function: {function_symbol.key()}")
 
