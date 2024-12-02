@@ -1,18 +1,19 @@
 
 
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
+from parsing.ast_walk.ast_nodes.expression_ast import _Helpers, DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
 from parsing.ast_walk.ast_nodes.my_ats_node import ProcedureDesignatorNode
 from parsing.ast_walk.context_fetch.intrinsic_func import IntrinsicFunctionsDefinition
 from parsing.ast_walk.dispatcher import Handler, Params
 from parsing.definitions import Function, GenericFunctionDefinition, SymbolDefinition
-from parsing.typing import PointerType, StructType
+from parsing.typing import ArrayType, PointerType, StructType
+from parsing.ast_walk.identifier_name_retriever.identifier_name_retriever_dispatcher import identifier_retrieve_dispatcher
 
 class ParenthesisContextFetcher(Handler[SymbolDefinition]):  
     def handle(self, node: ParenthesisNode, params: Params) -> SymbolDefinition:
         return self.dispatch(node=node.inner_expr, params=params)
     
 class ReferenceContextFetcher(Handler[SymbolDefinition]):
-    def handle(self, node: ReferenceNode | DataRefNode, params: Params) -> SymbolDefinition:
+    def handle(self, node: ReferenceNode, params: Params) -> SymbolDefinition:
         symbol = self._get_node_type(node, params)
         return symbol    
 
@@ -33,13 +34,38 @@ class IntrinsicFunctionContextFetcher(Handler[SymbolDefinition]):
         return self.intrinsic_map[node.function_name]
 
 class StructReferenceSymbolFetcher(Handler[SymbolDefinition]):
-    def handle(self, node: ProcedureDesignatorNode | DataRefNode, params: Params):
-        variable_type: StructType = params.context.get_symbol(node.struct_variable_name).get_type()
+    def handle(self, node: DataRefNode, params: Params):
+        left_symbol = self.dispatch(node=node.get_left_node(), params=params)
+        left_symbol_type: StructType = left_symbol.get_type()
 
-        if isinstance(variable_type, PointerType):
-            variable_type = variable_type.element_type
+        if isinstance(left_symbol_type, PointerType):
+            left_symbol_type = left_symbol_type.element_type
 
-        if not isinstance(variable_type, StructType):
-            raise ValueError(f"Procedure designator to non-struct type {variable_type}")
+        if isinstance(left_symbol_type, ArrayType) and not node.is_array_slice():
+            left_symbol_type = left_symbol_type.element_type
         
-        return variable_type.get_property(node.property_name, params.module_dictionary)
+        if not isinstance(left_symbol_type, StructType):
+            raise ValueError(f"Procedure designator to non-struct type {left_symbol_type}")
+        
+        property_name = identifier_retrieve_dispatcher.dispatch(node=node.last_fnode, params=params)
+
+        return left_symbol_type.get_property(property_name, params.module_dictionary)
+
+class StructMethodCallContextFetcher(Handler[SymbolDefinition]):
+    def handle(self, node: ProcedureDesignatorNode, params: Params):
+        
+        if node.property_name == 'check':
+            pass
+
+        left_symbol = self.dispatch(node=node.left_ref_fnode(), params=params)
+        left_symbol_type: StructType = left_symbol.get_type()
+
+        if isinstance(left_symbol_type, PointerType):
+            left_symbol_type = left_symbol_type.element_type
+
+        if not isinstance(left_symbol_type, StructType):
+            raise ValueError(f"Procedure designator to non-struct type {left_symbol_type}")
+        
+        return left_symbol_type.get_property(node.property_name, params.module_dictionary)
+    
+

@@ -5,7 +5,7 @@ from fparser.two.Fortran2003 import Base, Procedure_Stmt, Assignment_Stmt, Subro
 
 from fparser.two.Fortran2008.block_nonlabel_do_construct_r814_2 import Block_Nonlabel_Do_Construct
 from fparser.two.Fortran2008.if_stmt_r837 import If_Stmt as Fortran8_If_Stmt
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode
+from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, MyAstNode, \
                                                    SubroutineDefinitionNode, WriteStdoutNode, ProcedureDesignatorNode
 
@@ -23,7 +23,6 @@ _node_map = [
     (Level_2_Expr, OperatorNode),
     (Level_4_Expr, OperatorNode),
     (Parenthesis, ParenthesisNode),
-    (Part_Ref, ReferenceNode),
     (Name, NameNode),
     (Intrinsic_Function_Reference, IntrinsicFunctionNode),
     (Int_Literal_Constant, LiteralNode),
@@ -33,6 +32,7 @@ _node_map = [
     (Logical_Literal_Constant, LiteralNode),
     (Data_Ref, DataRefNode),
     (Procedure_Designator, ProcedureDesignatorNode),
+    (Part_Ref, PartRefNode)
 ]
 
 _node_map_dict = {fnode: my_node for fnode, my_node in _node_map}

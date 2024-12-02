@@ -65,14 +65,28 @@ class LiteralNode(MyAstNode[Int_Literal_Constant | Real_Literal_Constant | Char_
         self.kind = self.kind.lower() if self.kind is not None else None
 
 class DataRefNode(MyAstNode[Data_Ref]):
-    def __init__(self, fnode: Data_Ref):
+    # !!! warning `fnode` can be a list of nodes not a single node 
+
+    def __init__(self, fnode: Data_Ref | list[Base]):
         super().__init__(fnode)
-
-        self.struct_variable_name = fnode.children[0].tostr().lower()
-        self.property_fnode = fnode.children[1]
-
-        # this might not work as expected ¯\_(ツ)_/¯
-        self.property_name = find_in_tree(fnode.children[1], Name).tostr().lower()
+        self.last_fnode = fnode[-1] if isinstance(fnode, (list, tuple)) else fnode.children[-1]
 
     def indexes_to_array_are_slices(self):
-        return _Helpers.indexes_to_array_in_reference_are_slices(self.fnode)
+        return _Helpers.indexes_to_array_in_reference_are_slices(self.last_fnode)
+
+    def get_left_node(self):
+        fnodes = self.fnode[:-1] if isinstance(self.fnode, (list, tuple)) else self.fnode.children[:-1]
+        
+        if len(fnodes) == 1:
+            return fnodes[0]
+        
+        return DataRefNode(fnodes)
+
+    def is_array_slice(self):
+        return _Helpers.indexes_to_array_in_reference_are_slices(self.last_fnode)
+
+class PartRefNode(MyAstNode[Part_Ref]):
+    def __init__(self, fnode: Part_Ref):
+        super().__init__(fnode)
+        self.ref_name = fnode.children[0].tostr().lower()
+    

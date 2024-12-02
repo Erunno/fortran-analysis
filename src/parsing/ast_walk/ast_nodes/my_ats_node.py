@@ -1,7 +1,7 @@
 from typing import Generic, TypeVar
 from fparser.two.Fortran2003 import Base, Program, Assignment_Stmt, Subroutine_Stmt, Function_Stmt, Subroutine_Subprogram, Function_Subprogram, \
                                     Execution_Part, StmtBase, Call_Stmt, Name, If_Construct, Else_Stmt, Else_If_Stmt, Write_Stmt, End_If_Stmt, \
-                                    Actual_Arg_Spec_List, Procedure_Designator
+                                    Actual_Arg_Spec_List, Procedure_Designator, Part_Ref
 from fparser.two.Fortran2008.block_nonlabel_do_construct_r814_2 import Block_Nonlabel_Do_Construct
 
 from parsing.find_in_tree import find_in_node, find_in_tree
@@ -87,10 +87,16 @@ class IfBlockNode(MyAstNode[If_Construct]):
 class WriteStdoutNode(MyAstNode[Write_Stmt]):
     def __init__(self, fnode: Write_Stmt):
         super().__init__(fnode)
-        
 
 class ProcedureDesignatorNode(MyAstNode[Procedure_Designator]):
     def __init__(self, fnode: Procedure_Designator):
         super().__init__(fnode)
         self.struct_variable_name = fnode.children[0].tostr().lower()
         self.property_name = fnode.children[2].tostr().lower()
+
+    def left_ref_fnode(self):
+        return self.fnode.children[0]
+    
+    def right_ref_fnode(self):
+        return self.fnode.children[2]
+    

@@ -1,4 +1,4 @@
-from parsing.ast_walk.context_fetch.context_fetch_handlers import IntrinsicFunctionContextFetcher, NameContextFetcher, ParenthesisContextFetcher, ReferenceContextFetcher, StructReferenceSymbolFetcher
+from parsing.ast_walk.context_fetch.context_fetch_handlers import IntrinsicFunctionContextFetcher, NameContextFetcher, ParenthesisContextFetcher, ReferenceContextFetcher, StructMethodCallContextFetcher, StructReferenceSymbolFetcher
 from parsing.ast_walk.dispatcher import Dispatcher
 from parsing.definitions import SymbolDefinition
 from parsing.typing import FortranType
@@ -12,4 +12,4 @@ symbol_fetch_dispatcher.register(ReferenceContextFetcher).for_node(ReferenceNode
 symbol_fetch_dispatcher.register(NameContextFetcher).for_node(NameNode)
 symbol_fetch_dispatcher.register(IntrinsicFunctionContextFetcher).for_node(IntrinsicFunctionNode)
 symbol_fetch_dispatcher.register(StructReferenceSymbolFetcher).for_node(DataRefNode)
-symbol_fetch_dispatcher.register(StructReferenceSymbolFetcher).for_node(ProcedureDesignatorNode)
+symbol_fetch_dispatcher.register(StructMethodCallContextFetcher).for_node(ProcedureDesignatorNode)

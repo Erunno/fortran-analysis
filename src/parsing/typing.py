@@ -9,7 +9,7 @@ from fparser.two.Fortran2003 import Program, Module, Specification_Part, \
     Suffix, Component_Part, Component_Decl_List, Component_Decl, Dimension_Component_Attr_Spec, \
     Deferred_Shape_Spec_List, Procedure_Stmt, Subroutine_Body,  Generic_Spec, \
     Specific_Binding, Type_Bound_Procedure_Part, Contains_Stmt, Int_Literal_Constant, \
-    Prefix, Prefix_Spec
+    Prefix, Prefix_Spec, Explicit_Shape_Spec_List
 
 from fparser.two.Fortran2008 import Procedure_Name_List    
 from fparser.two.Fortran2008.type_declaration_stmt_r501 import Type_Declaration_Stmt
@@ -430,14 +430,18 @@ class TypeParser:
             elif isinstance(attr, Attr_Spec) and attr.tostr().lower() == "save":
                 pass # save does not affect the type
             elif isinstance(attr, Dimension_Attr_Spec) or isinstance(attr, Dimension_Component_Attr_Spec):
-                shape_list = find_in_tree(attr, Assumed_Shape_Spec_List) or find_in_tree(attr, Deferred_Shape_Spec_List)
+                shape_list = find_in_tree(attr, Assumed_Shape_Spec_List) \
+                    or find_in_tree(attr, Deferred_Shape_Spec_List) \
+                    or find_in_tree(attr, Explicit_Shape_Spec_List)
                 array_dims = []
 
                 for shape in shape_list.children:
-                    if shape.tostr().lower() == ":":
+                    dim_shape = shape.tostr().lower()
+                    if dim_shape == ":":
                         array_dims.append(ArrayType.variable_length())
                     else:
-                        raise NotImplementedError("Only assumed shape arrays are supported at the moment")
+                        array_dims.append(dim_shape)
+
             elif isinstance(attr, Intent_Attr_Spec):
                 pass # intent does not affect type
             elif isinstance(attr, Access_Spec):

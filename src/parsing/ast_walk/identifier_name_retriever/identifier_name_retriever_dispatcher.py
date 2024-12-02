@@ -1,0 +1,10 @@
+from parsing.ast_walk.ast_nodes.expression_ast import NameNode, ParenthesisNode, PartRefNode, ReferenceNode
+from parsing.ast_walk.dispatcher import Dispatcher
+from parsing.ast_walk.identifier_name_retriever.identifier_name_retriever_handlers import NameIdentifierRetriever, ParenthesisIdentifierRetriever, PartRefIdentifierRetriever, ReferenceIdentifierRetriever
+
+identifier_retrieve_dispatcher = Dispatcher[str]()
+
+identifier_retrieve_dispatcher.register(ParenthesisIdentifierRetriever).for_node(ParenthesisNode)
+identifier_retrieve_dispatcher.register(ReferenceIdentifierRetriever).for_node(ReferenceNode)
+identifier_retrieve_dispatcher.register(NameIdentifierRetriever).for_node(NameNode)
+identifier_retrieve_dispatcher.register(PartRefIdentifierRetriever).for_node(PartRefNode)

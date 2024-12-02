@@ -2,9 +2,11 @@ from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunc
 from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Handler, Params
 from parsing.ast_walk.context_fetch.context_fetch_dispatcher import symbol_fetch_dispatcher
+from parsing.ast_walk.identifier_name_retriever.identifier_name_retriever_dispatcher import identifier_retrieve_dispatcher
 from parsing.ast_walk.typing.typing_dispatcher import type_dispatcher
 from parsing.context import SubroutineFunctionContext
 from parsing.definitions import GenericFunctionDefinition, Interface
+
 
 class AssignmentPrinter(Handler):
     def handle(self, node: AssignmentNode , params: Params):
@@ -108,4 +110,9 @@ class LiteralPrinter(Handler):
 
 class DataRefPrinter(Handler):
     def handle(self, node: DataRefNode, params: Params):
-        print(f"Data Ref Node: <{node.struct_variable_name}>%<{node.property_name}>")
+        left_symbol = symbol_fetch_dispatcher.dispatch(node=node.get_left_node(), params=params)
+        property_name = identifier_retrieve_dispatcher.dispatch(node=node.last_fnode, params=params)
+
+        print(f"Data Ref Node: <{left_symbol}>%<{property_name}>")
+
+        self.dispatch(node=node.get_left_node(), params=params)
