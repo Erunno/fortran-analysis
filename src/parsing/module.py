@@ -58,6 +58,11 @@ class FortranModule:
         return module, specif_part, sub_program
     
 
+class ExternalLibraryModule(FortranModule):
+    def __init__(self, name, defined_names):
+        self.name = name
+        # self.public_exports_context = ModulePublicExportsContext(self.definitions)
+        self.defined_names = defined_names
         
     
     

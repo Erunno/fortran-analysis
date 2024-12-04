@@ -1,4 +1,5 @@
 from parsing.ast_walk.run_translation import run_translation
+from parsing.ast_walk.symbol_collection.call_graph import GraphCollector
 from parsing.functions_analyzer import FunctionAnalyzer
 from parsing.module_dictionary import ModuleDictionary
 
@@ -67,14 +68,23 @@ modules = [
 
 # analyzer.analyze('moloch')
 
-run_translation(
-    module_dict=d,
-    module_name='mod_moloch',
-    function_name='moloch'
-)
+# run_translation(
+#     module_dict=d,
+#     module_name='mod_moloch',
+#     function_name='moloch'
+# )
 
 # run_translation(
 #     module_dict=d,
 #     module_name='mod_timer',
 #     function_name='step_timer'
 # )
+
+collector = GraphCollector(module_dict=d)
+
+all_symbols = collector.collect_all_symbols('mod_moloch', 'moloch')
+
+print('refereed symbols:')
+
+for symbol in all_symbols.symbols:
+    print(symbol)

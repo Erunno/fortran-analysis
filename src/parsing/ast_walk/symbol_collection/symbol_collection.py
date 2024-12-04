@@ -1,3 +1,6 @@
+from parsing.definitions import GenericFunctionDefinition
+
+
 class SymbolCollection:
     def __init__(self):
         self.symbols = set()
@@ -32,6 +35,12 @@ class SymbolCollection:
         new_col = SymbolCollection()
         new_col.called_intrinsic_functions_names = self.called_intrinsic_functions_names.union({function_name})
         return new_col
+
+    def get_function_symbols(self) -> set[GenericFunctionDefinition]:
+        return {symbol for symbol in self.symbols if isinstance(symbol, GenericFunctionDefinition)}
+
+    def count(self) -> int:
+        return len(self.symbols)
 
     @staticmethod
     def merge_many(args_collections: list['SymbolCollection']) -> 'SymbolCollection':

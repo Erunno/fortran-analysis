@@ -27,9 +27,13 @@ class FunctionDefinitionCollector(Handler[SymbolCollection]):
     def handle(self, node: FunctionDefinitionNode | SubroutineDefinitionNode, params: Params) -> SymbolCollection:
         collection = SymbolCollection()
         
-        for stmt in node.execution_part:
+        for i, stmt in enumerate(node.execution_part):
+            print(f' [{i+1}/{len(node.execution_part)}]\r', end='')
+            
             node_collection = self.dispatch(node=stmt, params=params)
             collection = collection.merge(node_collection)
+
+        print('                                      \r', end='')
 
         return collection
     

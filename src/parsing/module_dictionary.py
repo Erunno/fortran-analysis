@@ -1,4 +1,4 @@
-from parsing.module import FortranModule
+from parsing.module import ExternalLibraryModule, FortranModule
 import os
 from Levenshtein import distance as lev
 
@@ -11,6 +11,9 @@ class ModuleDictionary:
         self.file_system = self._load_files(base_dir)
 
     def get_module(self, module_name) -> FortranModule:
+        if ExternalLibs.is_external(module_name):
+            return ExternalLibs.get_module(module_name)
+
         if module_name not in self.modules:
             self.modules[module_name] = self._load_module(module_name)
 
@@ -58,3 +61,15 @@ class ModuleDictionary:
 
         return self.file_system[best_match]
     
+class ExternalLibs:
+    external_libs = {
+        'netcdf': ExternalLibraryModule('netcdf', []),
+    }
+
+    @staticmethod
+    def is_external(name):
+        return name in ExternalLibs.external_libs
+    
+    @staticmethod
+    def get_module(name):
+        return ExternalLibs.external_libs[name]()
