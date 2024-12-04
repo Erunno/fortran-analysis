@@ -1,13 +1,29 @@
 from parsing.definitions import GenericFunctionDefinition, SymbolInitParams
+from parsing.module import FortranModule
 from parsing.typing import FortranType, FunctionArgumentForType, FunctionType, PrimitiveType
 
+
+class IntrinsicsHolderModule(FortranModule):
+    def __init__(self):
+        pass
+    
+    _instance = None
+    @staticmethod
+    def instance():
+        if not IntrinsicsHolderModule._instance:
+            IntrinsicsHolderModule._instance = IntrinsicsHolderModule()
+        return IntrinsicsHolderModule._instance
+    
+    def key(self):
+        return 'IntrinsicsHolderModule'
+    
+    def class_label(self):
+        return 'IntrinsicsHolderModule'
 
 class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
     def __init__(self, name, function_type: FunctionType):
         super().__init__(SymbolInitParams(
-            fparser_node = None,
-            definition_location = '[Intrinsic function]', 
-            definition_module = '<no module>'))
+            fparser_node = None, definition_location_symbol=IntrinsicsHolderModule.instance()))
 
         self.name = name
         self._type = function_type

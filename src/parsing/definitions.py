@@ -23,19 +23,16 @@ from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_node, fi
 from parsing.typing import ArrayType, FortranType, FunctionArgumentForType, FunctionType, PointerType, PrimitiveType, StructType, TypeParser, VoidType
 
 class SymbolInitParams:
-    def __init__(self, fparser_node, definition_location: str, definition_module: str):
+    def __init__(self, fparser_node, definition_location_symbol: 'SymbolDefinition'):
         self.fparser_node = fparser_node
-        self.definition_location = definition_location
-        # self.definition_location_symbol = definition_location_symbol
-        self.definition_module = definition_module
+        self.definition_location_symbol = definition_location_symbol
 
 class SymbolDefinition:
     def __init__(self, init_params: SymbolInitParams):
         self.fparser_node = init_params.fparser_node
         self._is_public = False
         self.access_modifier = None
-        self.definition_location: str = init_params.definition_location
-        self._defined_in_module: str = init_params.definition_module
+        self._defined_in_symbol = init_params.definition_location_symbol
 
     def set_public(self, value=True):
         self._is_public = value
@@ -53,7 +50,7 @@ class SymbolDefinition:
         return not not self.access_modifier
 
     def __str__(self):
-        return f"{self.class_label()} <{self.key()}> defined in {self.definition_location} in module [{self._defined_in_module}]"
+        return f"{self.class_label()} <{self.key()}> defined in [{self.defined_in()}] in module [{self.defined_in_module_str()}]"
 
     def __repr__(self):
         return self.__str__()
@@ -62,10 +59,32 @@ class SymbolDefinition:
         return "Symbol"
 
     def defined_in(self) -> str:
-        return self.definition_location
+        return self._defined_in_symbol
     
-    def defined_in_module(self) -> str:
-        return self._defined_in_module
+    def defined_in_module_str(self) -> str:
+        module = self.defined_in_module()
+        return module.key()
+    
+    def defined_in_module(self):
+        if self._defined_in_symbol.is_module():
+            return self._defined_in_symbol
+        
+        return self._defined_in_symbol.defined_in_module()
+
+    def is_module(self):
+        return False
+
+class ModuleDefinition(SymbolDefinition):
+    def __init__(self, init_params: SymbolInitParams):
+        super().__init__(init_params)
+        self.name = find_in_tree(init_params.fparser_node, Name).tostr().lower()
+        self.module_context = None
+
+    def class_label(self):
+        return "Module"
+
+    def set_module_context(self, module_context):
+        self.module_context = module_context
 
 class VariableDeclaration(SymbolDefinition):
     def __init__(self, name: str, init_params: SymbolInitParams):
@@ -106,7 +125,7 @@ class VariableDeclaration(SymbolDefinition):
         return self._denoted_as_optional
     
     def _parse_type(self, fparser_node: Type_Declaration_Stmt):
-        return TypeParser.parse_type(fparser_node, module_of_definition=self.defined_in_module())
+        return TypeParser.parse_type(fparser_node, module_of_definition=self.defined_in_module_str())
 
 class FunctionReturnVariableDeclaration(VariableDeclaration):
     def __init__(self,
@@ -157,9 +176,8 @@ class GenericFunctionDefinition(SymbolDefinition):
         
         specification = find_in_tree(self.fparser_node, Specification_Part)
         subprogram = find_in_tree(self.fparser_node, Internal_Subprogram_Part)
-        location = f'[{self.class_label()} {self.key()}]'
 
-        self._definitions = FortranDefinitions(location, self.defined_in_module(), specification, subprogram, module_dictionary=None)
+        self._definitions = FortranDefinitions(self, specification, subprogram, module_dictionary=None)
 
         if hasattr(self, '_patch_definitions'):
             self._definitions = self._patch_definitions(self._definitions)
@@ -241,8 +259,7 @@ class Function(GenericFunctionDefinition):
             function_is_pure=Function.is_definition_of_pure_function(self.fparser_node),
             init_params=SymbolInitParams(
                 fparser_node=self.fparser_node,
-                definition_location=f'[Return variable of {self.key()}]',
-                definition_module=self.defined_in_module()))
+                definition_location_symbol=self))
 
         definitions.add_variable(return_variable)
         return definitions
@@ -387,7 +404,7 @@ class Interface(SymbolDefinition):
         
         self._wrapped_function_symbols = []
         
-        interfaces_module = self.module_dictionary.get_module(self.defined_in_module())
+        interfaces_module = self.module_dictionary.get_module(self.defined_in_module_str())
         internal_definitions = self._load_internal_subroutine_definitions(findall_in_node(self.fparser_node, Subroutine_Body))
 
         for name in self._wrapped_function_names:
@@ -408,8 +425,7 @@ class Interface(SymbolDefinition):
         return [ \
             Subroutine.create_from(SymbolInitParams(
                 fparser_node=proc_body, 
-                definition_location=f'[internal subroutine of interface {self.key()}]',
-                definition_module=self.defined_in_module()))
+                definition_location_symbol=self))
             for proc_body in bodies]
 
     def class_label(self):
@@ -471,7 +487,7 @@ class OperatorRedefinition(SymbolDefinition):
         if self._operator_functions:
             return self._operator_functions
         
-        self_module = self.module_dictionary.get_module(self.defined_in_module())
+        self_module = self.module_dictionary.get_module(self.defined_in_module_str())
         self._operator_functions = [self_module.module_context.get_symbol(name) for name in self._fetch_operator_function_names()]
 
         return self._operator_functions
@@ -608,7 +624,7 @@ class StructMethod(SymbolDefinition):
         if self._actual_function_symbol:
             return self._actual_function_symbol
         
-        module = self.module_dictionary.get_module(self.defined_in_module())
+        module = self.module_dictionary.get_module(self.defined_in_module_str())
         self._actual_function_symbol = module.module_context.get_symbol(self.implementation_name)
         
         return self._actual_function_symbol
@@ -645,7 +661,7 @@ class Type(SymbolDefinition):
         self.module_dictionary = module_dictionary
     
     def get_type(self) -> StructType:
-        return StructType(self.name, self.defined_in_module())
+        return StructType(self.name, self.defined_in_module_str())
     
     def class_label(self):
         return "Type"
@@ -671,7 +687,7 @@ class Type(SymbolDefinition):
         
         self._methods = [StructMethod( 
                 module_dictionary=self.module_dictionary,
-                init_params=SymbolInitParams(proc, self.definition_location, self.defined_in_module())) 
+                init_params=SymbolInitParams(proc, self)) 
             for proc in procedures.children[1:]]
         
         self._assert_first_arg_is_the_struct_for_each(self._methods)
@@ -685,7 +701,6 @@ class Type(SymbolDefinition):
         component_part = find_in_node(self.fparser_node, Component_Part)
 
         self._properties = []
-        definition_location = f"[Property of {self.key()}]"
 
         for data_component in component_part.children:
             if not isinstance(data_component, Data_Component_Def_Stmt):
@@ -693,8 +708,7 @@ class Type(SymbolDefinition):
 
             properties_defined_on_a_line = StructProperty.create_from(SymbolInitParams(
                 fparser_node=data_component, 
-                definition_location=definition_location, 
-                definition_module=self.defined_in_module()))
+                definition_location_symbol=self))
             
             self._properties.extend(properties_defined_on_a_line)
             
@@ -712,8 +726,7 @@ class Type(SymbolDefinition):
 class AccessModifier:
     def __init__(self, init_params: SymbolInitParams):
         self.fparser_node = init_params.fparser_node
-        self.definition_location = init_params.definition_location
-        self.definition_module = init_params.definition_module
+        self.definition_location_symbol = init_params.definition_location_symbol
 
     def defines_public(self):
         modifier, _ = self.fparser_node.items
@@ -726,13 +739,12 @@ class AccessModifier:
         return not decl_list
 
     def __str__(self):
-        return f"Access modifier <{self.key()}> defined in {self.definition_location}"
+        return f"Access modifier <{self.key()}> defined in [{self.definition_location_symbol}]"
     
     def get_modified_symbol_keys(self):
         _, access_spec_list = self.fparser_node.items
 
         return [name.tostr().lower() for name in access_spec_list.items]
-    
 
     @staticmethod
     def create_from(init_params: SymbolInitParams):
@@ -741,13 +753,12 @@ class AccessModifier:
 
 class FortranDefinitions:
     def __init__(self,
-                 definition_location: str, definition_module: str,
+                 definition_location_symbol: SymbolDefinition,
                  specification: Specification_Part, subprogram: Module_Subprogram_Part, \
                  module_dictionary):
         
         self.module_dictionary = module_dictionary
-        self.definition_location = definition_location
-        self.definition_module = definition_module
+        self.definition_location_symbol = definition_location_symbol
 
         self.variables: list[VariableDeclaration] = []
         self.using_statements: list[UsingStatement] = []
@@ -781,9 +792,6 @@ class FortranDefinitions:
         if subprogram:
             self.load(subprogram)
 
-        if definition_module == 'mod_date':
-            pass
-
         self._load_forward_imports()
 
         self._set_public_symbols()
@@ -798,7 +806,7 @@ class FortranDefinitions:
         for child in root.children:
             for builder, container in self.builders:
                 symbol = builder(SymbolInitParams(
-                    child, self.definition_location, self.definition_module))
+                    child, self.definition_location_symbol))
 
                 if not symbol:
                     continue
@@ -833,8 +841,7 @@ class FortranDefinitions:
                 
                 forward_import = ProxySymbolDefinition(key, self.module_dictionary, self.using_statements,
                                     SymbolInitParams(fparser_node=None,
-                                        definition_location=self.definition_location, 
-                                        definition_module=self.definition_module))
+                                        definition_location_symbol=self.definition_location_symbol))
                 
                 self.forward_imports.append(forward_import)
 

@@ -26,7 +26,10 @@ class FortranModule:
         assert self.module.get_name().tostr() == self.name
 
         self.definitions = FortranDefinitions(
-            f'[module {name}]',self.name ,self.specif, self.sub_program, module_dictionary)
+            definition_location_symbol=self,
+            module_dictionary=module_dictionary,
+            specification=self.specif,
+            subprogram=self.sub_program)
 
         self.public_exports_context = ModulePublicExportsContext(self.definitions)
         self.module_local_context = ModuleLocalContext(self.definitions)
@@ -57,6 +60,11 @@ class FortranModule:
 
         return module, specif_part, sub_program
     
+    def key(self):
+        return self.name
+    
+    def is_module(self):
+        return True
 
 class ExternalLibraryModule(FortranModule):
     def __init__(self, name, defined_names):

@@ -48,7 +48,7 @@ class GraphCollector:
         
 
     def _collect_symbols(self, function_symbol: GenericFunctionDefinition):
-        function_module = self.module_dict.get_module(function_symbol.defined_in_module())
+        function_module = self.module_dict.get_module(function_symbol.defined_in_module_str())
         function_context = function_module.module_context.get_expanded(function_symbol.get_local_context())
 
         return collectors_dispatcher.dispatch(
