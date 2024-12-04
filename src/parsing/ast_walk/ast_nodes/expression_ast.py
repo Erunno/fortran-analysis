@@ -1,7 +1,7 @@
 from parsing.ast_walk.ast_nodes.my_ats_node import MyAstNode
 from fparser.two.Fortran2003 import Add_Operand, Mult_Operand, Parenthesis, Part_Ref, Name, Intrinsic_Function_Reference, \
     Int_Literal_Constant, Real_Literal_Constant, Char_Literal_Constant, Boz_Literal_Constant, Logical_Literal_Constant, Data_Ref, \
-    Base, Section_Subscript_List, Subscript_Triplet
+    Base, Section_Subscript_List, Subscript_Triplet, Level_2_Unary_Expr
 
 from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_node, findall_in_tree
 
@@ -28,14 +28,22 @@ class OperatorNode(MyAstNode[Add_Operand | Mult_Operand]):
         self.operator_sign = fnode.children[1]
         self.right_expr = fnode.children[2]
 
+class UnaryOperatorNode(MyAstNode[Level_2_Unary_Expr]):
+    def __init__(self, fnode: Level_2_Unary_Expr):
+        super().__init__(fnode)
+
+    def operator_sign(self):
+        return self.fnode.children[0]
+
+    def expr_fnode(self):
+        return self.fnode.children[1]
+
 class ParenthesisNode(MyAstNode[Parenthesis]):
     def __init__(self, fnode: Parenthesis):
         super().__init__(fnode)
 
         self.inner_expr = fnode.children[1]
-
-        
-
+  
 class ReferenceNode(MyAstNode[Part_Ref]):
     def __init__(self, fnode: Part_Ref):
         super().__init__(fnode)

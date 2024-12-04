@@ -1,6 +1,6 @@
 import fparser
 from parsing.find_in_tree import find_in_tree
-from parsing.context import ChainedContext, FortranContext, ModuleImportedContext, ModuleLocalContext, ModulePublicExportsContext
+from parsing.context import ChainedContext, ExternalLibraryContext, FortranContext, ModuleImportedContext, ModuleLocalContext, ModulePublicExportsContext
 from parsing.definitions import FortranDefinitions
 from parsing.preprocessor import Preprocessor
 from fparser.two.parser import ParserFactory
@@ -63,6 +63,7 @@ class ExternalLibraryModule(FortranModule):
         self.name = name
         # self.public_exports_context = ModulePublicExportsContext(self.definitions)
         self.defined_names = defined_names
+        self.public_exports_context = ExternalLibraryContext(defined_names)
         
     
     

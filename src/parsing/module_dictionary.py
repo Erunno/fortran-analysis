@@ -64,6 +64,7 @@ class ModuleDictionary:
 class ExternalLibs:
     external_libs = {
         'netcdf': ExternalLibraryModule('netcdf', []),
+        'mpi': ExternalLibraryModule('mpi', []),
     }
 
     @staticmethod
@@ -72,4 +73,4 @@ class ExternalLibs:
     
     @staticmethod
     def get_module(name):
-        return ExternalLibs.external_libs[name]()
+        return ExternalLibs.external_libs[name]

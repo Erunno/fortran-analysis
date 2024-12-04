@@ -24,6 +24,16 @@ class ModulePublicExportsContext(FortranContext):
     def get_operator_symbols(self, op: str):
         return self.definitions.find_public_operators(op)
 
+class ExternalLibraryContext(FortranContext):
+    def __init__(self, defined_names):
+        self.defined_names = defined_names
+
+    def get_symbol(self, symbol_name: str):
+        return None
+
+    def get_operator_symbols(self, op: str):
+        return None
+
 class ModuleLocalContext(FortranContext):
     def __init__(self, definitions: FortranDefinitions):
         self.definitions: FortranDefinitions = definitions

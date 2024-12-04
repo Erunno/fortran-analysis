@@ -1,13 +1,13 @@
-from parsing.definitions import GenericFunctionDefinition
+from parsing.definitions import GenericFunctionDefinition, SymbolInitParams
 from parsing.typing import FortranType, FunctionArgumentForType, FunctionType, PrimitiveType
 
 
 class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
     def __init__(self, name, function_type: FunctionType):
-        super().__init__(
+        super().__init__(SymbolInitParams(
             fparser_node = None,
             definition_location = '[Intrinsic function]', 
-            definition_module = '<no module>')
+            definition_module = '<no module>'))
 
         self.name = name
         self._type = function_type

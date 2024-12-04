@@ -20,6 +20,7 @@ class GraphCollector:
         visited_functions = set()
 
         while queue:
+            queue.sort(key=lambda symbol: symbol.key())
 
             current_function_symbol = queue.pop(0)
             visited_functions.add(current_function_symbol)

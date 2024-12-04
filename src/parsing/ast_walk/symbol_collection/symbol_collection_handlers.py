@@ -1,4 +1,4 @@
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode, SubscriptTripletNode
+from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode, SubscriptTripletNode, UnaryOperatorNode
 from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, ProcedureDesignatorNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Dispatcher, Handler, Params
@@ -93,15 +93,15 @@ class OperatorCollector(Handler[SymbolCollection]):
     def handle(self, node: OperatorNode, params: Params) -> SymbolCollection:
         op_function = self._get_operator_function(node=node, params=params)
 
-        left_collection = self.dispatch(node=node.left_expr, params=params)        
-        right_collection = self.dispatch(node=node.right_expr, params=params)
+        left_collection: SymbolCollection = self.dispatch(node=node.left_expr, params=params)        
+        right_collection: SymbolCollection = self.dispatch(node=node.right_expr, params=params)
 
         result_collection = left_collection.merge(right_collection)
         return result_collection.with_function_symbol(op_function) if op_function else result_collection
     
     def _get_operator_function(self, node: OperatorNode, params: Params) -> SymbolCollection:
-        l_type: FortranType = self.dispatch(node=node.left_expr, params=params)
-        r_type: FortranType = self.dispatch(node=node.right_expr, params=params)
+        l_type: FortranType = type_dispatcher.dispatch(node=node.left_expr, params=params)
+        r_type: FortranType = type_dispatcher.dispatch(node=node.right_expr, params=params)
 
         return self._find_operator_function(node.operator_sign, l_type, r_type, params)
         
@@ -115,7 +115,13 @@ class OperatorCollector(Handler[SymbolCollection]):
             raise ValueError(f"Multiple operator functions found for {op_sign} with types {l_type} and {r_type}")
         
         return function_candidates[0] if function_candidates else None
-    
+
+class UnaryOperatorCollector(Handler[SymbolCollection]):
+    def handle(self, node: UnaryOperatorNode, params: Params) -> SymbolCollection:
+        #TODO: implement unary operator function ... i hope that it is not possible to overload unary operators in fortran though
+
+        return self.dispatch(node=node.expr_fnode(), params=params)
+
 class AssignmentCollector(OperatorCollector):
     def handle(self, node: AssignmentNode , params: Params) -> SymbolCollection:
         assignment_operator_function = self._get_operator_function(node=node, params=params)

@@ -2,12 +2,12 @@ from fparser.two.Fortran2003 import Base, Procedure_Stmt, Assignment_Stmt, Subro
                                     Function_Stmt, If_Construct, Write_Stmt, Add_Operand, Mult_Operand, Parenthesis, Part_Ref, Name, \
                                     Intrinsic_Function_Reference, Int_Literal_Constant, Real_Literal_Constant, Char_Literal_Constant, Boz_Literal_Constant, \
                                     Logical_Literal_Constant, Level_2_Expr, Level_4_Expr, Data_Ref, Procedure_Designator, Subscript_Triplet, \
-                                    Forall_Header, Forall_Triplet_Spec
+                                    Forall_Header, Forall_Triplet_Spec, Level_2_Unary_Expr
 
 from fparser.two.Fortran2008.block_nonlabel_do_construct_r814_2 import Block_Nonlabel_Do_Construct
 from fparser.two.Fortran2008.if_stmt_r837 import If_Stmt as Fortran8_If_Stmt
 from fparser.two.Fortran2008.loop_control_r818 import Loop_Control
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode, SubscriptTripletNode
+from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode, SubscriptTripletNode, UnaryOperatorNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, MyAstNode, \
                                                    SubroutineDefinitionNode, WriteStdoutNode, ProcedureDesignatorNode
 
@@ -39,6 +39,7 @@ _node_map = [
     (Loop_Control, LoopControlNode),
     (Forall_Header, ForAllHeaderNode),
     (Forall_Triplet_Spec, ForAllTripletNode),
+    (Level_2_Unary_Expr, UnaryOperatorNode),
 ]
 
 _node_map_dict = {fnode: my_node for fnode, my_node in _node_map}

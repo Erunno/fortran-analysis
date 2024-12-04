@@ -1,9 +1,9 @@
 
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, SubscriptTripletNode
+from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, SubscriptTripletNode, UnaryOperatorNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, ProcedureDesignatorNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Dispatcher
 from parsing.ast_walk.symbol_collection.symbol_collection import SymbolCollection
-from parsing.ast_walk.symbol_collection.symbol_collection_handlers import AssignmentCollector, CallSubroutineCollector, DataRefCollector, ForAllHeaderCollector, ForAllTripletCollector, ForLoopCollector, FunctionDefinitionCollector, IfBlockCollector, IntrinsicFunctionCollector, LiteralCollector, LoopControlCollector, NameCollector, OperatorCollector, ParenthesisCollector, PartRefCollector, ProcedureDesignatorCollector, SubscriptTripleCollector, WriteStdoutCollector
+from parsing.ast_walk.symbol_collection.symbol_collection_handlers import AssignmentCollector, CallSubroutineCollector, DataRefCollector, ForAllHeaderCollector, ForAllTripletCollector, ForLoopCollector, FunctionDefinitionCollector, IfBlockCollector, IntrinsicFunctionCollector, LiteralCollector, LoopControlCollector, NameCollector, OperatorCollector, ParenthesisCollector, PartRefCollector, ProcedureDesignatorCollector, SubscriptTripleCollector, UnaryOperatorCollector, WriteStdoutCollector
 
 collectors_dispatcher = Dispatcher[SymbolCollection]()
 
@@ -26,3 +26,4 @@ collectors_dispatcher.register(SubscriptTripleCollector).for_node(SubscriptTripl
 collectors_dispatcher.register(LoopControlCollector).for_node(LoopControlNode)
 collectors_dispatcher.register(ForAllHeaderCollector).for_node(ForAllHeaderNode)
 collectors_dispatcher.register(ForAllTripletCollector).for_node(ForAllTripletNode)
+collectors_dispatcher.register(UnaryOperatorCollector).for_node(UnaryOperatorNode)
