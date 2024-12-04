@@ -92,3 +92,23 @@ class PartRefNode(MyAstNode[Part_Ref]):
     
     def indexes_to_array_are_slices(self):
         return _Helpers.indexes_to_array_in_reference_are_slices(self.fnode)
+    
+    def ref_name_fnode(self):
+        return self.fnode.children[0]
+
+    def args_fnodes(self):
+        subscription_list = find_in_node(self.fnode, Section_Subscript_List)
+        return subscription_list.children
+    
+class SubscriptTripletNode(MyAstNode[Subscript_Triplet]):
+    def __init__(self, fnode: Subscript_Triplet):
+        super().__init__(fnode)
+   
+    def lower_bound_fnode(self):
+        return self.fnode.children[0]
+    
+    def upper_bound_fnode(self):
+        return self.fnode.children[1]
+
+    def stride_fnode(self):
+        return self.fnode.children[2] 

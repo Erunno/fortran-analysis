@@ -1,8 +1,10 @@
 from typing import Generic, TypeVar
 from fparser.two.Fortran2003 import Base, Program, Assignment_Stmt, Subroutine_Stmt, Function_Stmt, Subroutine_Subprogram, Function_Subprogram, \
                                     Execution_Part, StmtBase, Call_Stmt, Name, If_Construct, Else_Stmt, Else_If_Stmt, Write_Stmt, End_If_Stmt, \
-                                    Actual_Arg_Spec_List, Procedure_Designator, Part_Ref
+                                    Actual_Arg_Spec_List, Procedure_Designator, Part_Ref, Forall_Triplet_Spec_List, Forall_Header, \
+                                    Subscript_Triplet
 from fparser.two.Fortran2008.block_nonlabel_do_construct_r814_2 import Block_Nonlabel_Do_Construct
+from fparser.two.Fortran2008.loop_control_r818 import Loop_Control
 
 from parsing.find_in_tree import find_in_node, find_in_tree
 
@@ -56,6 +58,43 @@ class ForLoopNode(MyAstNode[Block_Nonlabel_Do_Construct]):
 
         self.execution_part = fnode.children[1:-1]
 
+    def do_control_fnode(self):
+        return find_in_tree(self.fnode, Loop_Control)
+
+class LoopControlNode(MyAstNode[Loop_Control]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+    def forall_header_fnode(self):
+        return find_in_tree(self.fnode, Forall_Header) 
+
+    def do_siple_do_fnodes(self):
+        return self.fnode.children[1]
+
+class ForAllHeaderNode(MyAstNode[Forall_Header]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+    def get_triplet_fnodes(self):
+        list = find_in_tree(self.fnode, Forall_Triplet_Spec_List)
+        return list.children
+    
+class ForAllTripletNode(MyAstNode[Subscript_Triplet]):
+    def __init__(self, fnode: Subscript_Triplet):
+        super().__init__(fnode)
+   
+    def control_variable_fnode(self):
+        return self.fnode.children[0]
+    
+    def lower_bound_fnode(self):
+        return self.fnode.children[1]
+
+    def upper_fnode(self):
+        return self.fnode.children[2]
+    
+    def stride_fnode(self):
+        return self.fnode.children[3]
+    
 class IfExecutionBranch:
     def __init__(self, fnode_condition: If_Construct):
         self.fnode = fnode_condition
@@ -100,4 +139,3 @@ class ProcedureDesignatorNode(MyAstNode[Procedure_Designator]):
     
     def right_ref_fnode(self):
         return self.fnode.children[2]
-    

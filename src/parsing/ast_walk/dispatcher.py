@@ -60,6 +60,6 @@ class Dispatcher[TDispReturn]:
     def handler_not_found(self, node, params):
         msg = f"handler for node {node} not implemented"
 
-        print(msg)
+        print(f"\033[91m{msg}\033[0m")
 
         # raise NotImplementedError(msg)

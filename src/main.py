@@ -67,14 +67,14 @@ modules = [
 
 # analyzer.analyze('moloch')
 
-# run_translation(
-#     module_dict=d,
-#     module_name='mod_moloch',
-#     function_name='moloch'
-# )
-
 run_translation(
     module_dict=d,
-    module_name='mod_timer',
-    function_name='step_timer'
+    module_name='mod_moloch',
+    function_name='moloch'
 )
+
+# run_translation(
+#     module_dict=d,
+#     module_name='mod_timer',
+#     function_name='step_timer'
+# )

@@ -61,7 +61,11 @@ def run_translation(
 
     print ('\ncollection\n')
 
-    collectors_dispatcher.dispatch(node=function_fnode, params=base_params)
+    collection = collectors_dispatcher.dispatch(node=function_fnode, params=base_params)
+
+    print('called symbols:')
+    for symbol in collection.symbols:
+        print(symbol)
 
     print(f"Function: {function_symbol.key()}")
 
