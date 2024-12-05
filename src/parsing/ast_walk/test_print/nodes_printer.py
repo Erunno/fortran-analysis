@@ -11,17 +11,17 @@ from parsing.definitions import GenericFunctionDefinition, Interface
 class AssignmentPrinter(Handler):
     def handle(self, node: AssignmentNode , params: Params):
         print(f"Assignment Node: <{node.fnode}>")
-        target_t = type_dispatcher.dispatch(node.target_fnode, params=params)
-        source_t = type_dispatcher.dispatch(node.source_fnode, params=params)
+        target_t = type_dispatcher.dispatch(node.target_fnode(), params=params)
+        source_t = type_dispatcher.dispatch(node.source_fnode(), params=params)
 
         if not target_t or not target_t.is_equivalent(source_t):
             print(f"\033[91mType mismatch in assignment: {target_t} != {source_t}\033[0m")
 
         print(f"Target of a type: {target_t}")
-        self.dispatch(node=node.target_fnode, params=params)
+        self.dispatch(node=node.target_fnode(), params=params)
 
         print(f"Source of a type: {source_t}")
-        self.dispatch(node=node.source_fnode, params=params)
+        self.dispatch(node=node.source_fnode(), params=params)
         pass
 
 class FunctionDefinitionPrinter(Handler):
@@ -74,11 +74,11 @@ class OperatorPrinter(Handler):
     def handle(self, node: OperatorNode, params: Params):
 
         print("Operator Node started")
-        self.dispatch(node=node.left_expr, params=params)
+        self.dispatch(node=node.left_fnode(), params=params)
         
-        print(f"Op Sign: <{node.operator_sign}>")
+        print(f"Op Sign: <{node.operator_sign()}>")
 
-        self.dispatch(node=node.right_expr, params=params)
+        self.dispatch(node=node.right_fnode(), params=params)
         print("Operator Node ended")
 
 class ParenthesisPrinter(Handler):  

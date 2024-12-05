@@ -62,13 +62,18 @@ class PrimitiveType(FortranType):
         self.name = name
         self.attributes = {}
 
-    def is_equivalent(self, other: FortranType) -> bool:
+    def is_equivalent(self, other: FortranType, with_number_cast=False) -> bool:
         if not isinstance(other, PrimitiveType):
             return False
         
         if PrimitiveType.is_number(self) and PrimitiveType.is_number(other):
             if 'anyNumber' in (self.name, other.name):
                 return True
+            
+            if with_number_cast:
+                if (self.name, other.name) in PrimitiveType._castable_number_types or \
+                    (other.name, self.name) in PrimitiveType._castable_number_types:
+                    return True
 
         for attr in self.attributes:
             if attr == 'kind':
@@ -97,7 +102,7 @@ class PrimitiveType(FortranType):
         if not isinstance(other_type, PrimitiveType):
             raise ValueError("Cannot unify primitive type with non-primitive type")
         
-        if not self.is_equivalent(other_type):
+        if not self.is_equivalent(other_type, with_number_cast=True):
             raise ValueError(f"Cannot unify {self} with {other_type}")
         
         if self.name == PrimitiveType.any_number_name():
@@ -105,6 +110,13 @@ class PrimitiveType(FortranType):
         
         if other_type.name == PrimitiveType.any_number_name():
             return self.clone()
+
+        for _from, _to in PrimitiveType._castable_number_types:
+            if self.name == _from and other_type.name == _to:
+                return other_type.clone()
+            
+            if self.name == _to and other_type.name == _from:
+                return self.clone()
 
         clone = self.clone()
 
@@ -130,8 +142,14 @@ class PrimitiveType(FortranType):
     _castable_kinds = [
         # from, to
         ('rk8', 'rkx'),
+        ('rk8', 'wrkp'),
+        ('wrkp', 'rkx'),
         (default_int_kind(), 'ik4'),
         (default_int_kind(), 'ik8'),
+    ]
+
+    _castable_number_types = [
+        ('integer', 'real'),
     ]
 
     _number_types = ['integer', 'real', any_number_name()]
@@ -209,11 +227,33 @@ class PrimitiveType(FortranType):
         return type_map[type_str.lower()]()
 
 class ArrayType(FortranType):
+    class AnyArray:
+        def __init__(self, element_type: FortranType):
+            self.element_type = element_type
+
+        def is_equivalent(self, other: FortranType) -> bool:
+            return isinstance(other, ArrayType.AnyArray) and other.element_type.is_equivalent(self.element_type)
+
+        def get_unified_with(self, other: FortranType) -> FortranType:
+            if not isinstance(other, ArrayType) or not other.element_type.is_equivalent(self.element_type):
+                raise ValueError("Cannot unify anyArray with non-array type")
+            
+            return other
+
+        def __str__(self):
+            return "<anyArray>"
+
+        def clone(self) -> FortranType:
+            return self
+
     def __init__(self, element_type: FortranType, dimensions: list[int]):
         self.element_type = element_type
         self.dimensions = dimensions
 
     def is_equivalent(self, other: FortranType) -> bool:
+        if isinstance(other, ArrayType.AnyArray) and other.element_type.is_equivalent(self.element_type):
+            return True
+
         if not isinstance(other, ArrayType):
             return False
         
@@ -236,6 +276,9 @@ class ArrayType(FortranType):
         return f"({self.element_type})[{array_spec}]"
     
     def get_unified_with(self, other: FortranType) -> FortranType:
+        if isinstance(other, ArrayType.AnyArray) and other.element_type.is_equivalent(self.element_type):
+            return self.clone()
+
         if not isinstance(other, ArrayType):
             raise ValueError("Cannot unify array type with non-array type")
         
@@ -248,7 +291,11 @@ class ArrayType(FortranType):
     @staticmethod
     def variable_length():
         return -1
-
+    
+    @staticmethod
+    def any_array(element_type: FortranType):
+        return ArrayType.AnyArray(element_type)
+    
     def clone(self) -> FortranType:
         return ArrayType(self.element_type.clone(), self.dimensions.copy())
 
@@ -277,7 +324,7 @@ class StructType(FortranType):
 
     def get_property(self, property_name, module_dictionary):
         module_of_original_variable = module_dictionary.get_module(self.original_variable_defined_in_module)
-        struct_definition = module_of_original_variable.module_context.get_symbol(self.type_name)
+        struct_definition = module_of_original_variable.get_context().get_symbol(self.type_name)
         
         struct_property = struct_definition.get_property(property_name)
         
@@ -297,8 +344,6 @@ class StructType(FortranType):
     def clone(self) -> FortranType:
         return StructType(self.type_name, self.struct_definition)
 
-class FunctionType(FortranType):
-    pass 
 class FunctionType(FortranType):
     def __init__(self, return_type: FortranType, arg_types: list[FunctionArgumentForType]):
         self.return_type = return_type
@@ -341,7 +386,7 @@ class FunctionType(FortranType):
     def clone(self) -> FortranType:
         return FunctionType(self.return_type.clone(), [arg.clone() for arg in self.arg_types])
 
-    def as_method_on_struct(self) -> FunctionType:
+    def as_method_on_struct(self) -> 'FunctionType':
         return FunctionType(
             return_type=self.return_type,
             # remove the first argument (self)
@@ -363,7 +408,18 @@ class PointerType(FortranType):
     def clone(self) -> FortranType:
         return PointerType(self.element_type.clone())
 
+class InterfaceType(FortranType):
+    def __init__(self, name: str):
+        self.name = name
 
+    def is_equivalent(self, other: FortranType) -> bool:
+        raise ValueError("InterfaceType is not directly comparable")
+        
+    def __str__(self):
+        return f"interface {self.function_type}"
+
+    def clone(self) -> FortranType:
+        return InterfaceType(self.function_type.clone())
 
 class TypeParser:
     @staticmethod
@@ -394,6 +450,9 @@ class TypeParser:
         kind = find_in_tree(type_spec, Kind_Selector)
         if kind:
             kind_name = find_in_tree(kind, Name)
+            if not kind_name:
+                kind_name = find_in_tree(kind, Int_Literal_Constant)
+                
             intrinsic_type.add_attribute("kind", kind_name.tostr().lower())
 
         length = find_in_tree(type_spec, Length_Selector)

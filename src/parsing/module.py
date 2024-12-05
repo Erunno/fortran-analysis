@@ -1,7 +1,8 @@
 import fparser
+from parsing.ast_walk.context_fetch.default_operators import DefaultOperatorContext
 from parsing.find_in_tree import find_in_tree
 from parsing.context import ChainedContext, ExternalLibraryContext, FortranContext, ModuleImportedContext, ModuleLocalContext, ModulePublicExportsContext
-from parsing.definitions import FortranDefinitions
+from parsing.definitions import ExternalSymbol, FortranDefinitions
 from parsing.preprocessor import Preprocessor
 from fparser.two.parser import ParserFactory
 from fparser.common.readfortran import FortranStringReader
@@ -35,14 +36,14 @@ class FortranModule:
         self.module_local_context = ModuleLocalContext(self.definitions)
         self.imported_context = ModuleImportedContext(self.definitions, self.module_dictionary)
 
-        self.module_context = ChainedContext([self.imported_context, self.module_local_context])
+        self.module_context = ChainedContext([DefaultOperatorContext.instance(), self.imported_context, self.module_local_context])
 
     def __str__(self):
-        return f"Module {self.name} is located at {self.path}"
+        return f"Module {self.name} - located at {self.path}"
 
     def _load_fortran_file(self, file_path: str) -> Program:
 
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding="utf8") as f:
             code = f.read()
 
         code = self.preprocessor.preprocess_code(code, self.module_dictionary)
@@ -65,13 +66,23 @@ class FortranModule:
     
     def is_module(self):
         return True
+    
+    def get_context(self):
+        return self.module_context
 
 class ExternalLibraryModule(FortranModule):
-    def __init__(self, name, defined_names):
+    def __init__(self, name, defined_symbols: list[ExternalSymbol]):
         self.name = name
-        # self.public_exports_context = ModulePublicExportsContext(self.definitions)
-        self.defined_names = defined_names
-        self.public_exports_context = ExternalLibraryContext(defined_names)
+
+        for symbol in defined_symbols:
+            symbol._set_module(self)
+
+        self.public_exports_context = ExternalLibraryContext(defined_symbols)
+        self.module_context = ExternalLibraryContext(defined_symbols)
+
+    def get_context(self):
+        return self.module_context
+
         
     
     

@@ -25,11 +25,11 @@ class ModulePublicExportsContext(FortranContext):
         return self.definitions.find_public_operators(op)
 
 class ExternalLibraryContext(FortranContext):
-    def __init__(self, defined_names):
-        self.defined_names = defined_names
+    def __init__(self, defined_external_symbols):
+        self._defined_external_symbols = { s.key(): s for s in defined_external_symbols }
 
     def get_symbol(self, symbol_name: str):
-        return None
+        return self._defined_external_symbols.get(symbol_name, None)
 
     def get_operator_symbols(self, op: str):
         return None
@@ -88,11 +88,13 @@ class ModuleImportedContext():
 
 
 class SubroutineFunctionContext(FortranContext):
-    def __init__(self, subroutine_definitions: FortranDefinitions):
-        self.subroutine_definitions = subroutine_definitions  
+    def __init__(self, subroutine_definitions: FortranDefinitions, module_dictionary):
+        self.subroutine_definitions = subroutine_definitions 
+        self._imported_context = ModuleImportedContext(subroutine_definitions, module_dictionary)
 
     def get_symbol(self, symbol_name: str):
-        return self.subroutine_definitions.find_local_symbol(symbol_name)
+        return self.subroutine_definitions.find_local_symbol(symbol_name) or \
+            self._imported_context.get_symbol(symbol_name)
     
     def get_operator_symbols(self, op: str):
         return []

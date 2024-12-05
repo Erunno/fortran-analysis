@@ -30,6 +30,14 @@ class IntrinsicFunctionContextFetcher(Handler[SymbolDefinition]):
         'minval': IntrinsicFunctionsDefinition.get_minval(),
         'int': IntrinsicFunctionsDefinition.get_int(),
         'mod': IntrinsicFunctionsDefinition.get_mod(),
+        'trim': IntrinsicFunctionsDefinition.get_trim(),
+        'log': IntrinsicFunctionsDefinition.get_log(),
+        'max': IntrinsicFunctionsDefinition.get_max(),
+        'sqrt': IntrinsicFunctionsDefinition.get_sqrt(),
+        'abs': IntrinsicFunctionsDefinition.get_abs(),
+        'any': IntrinsicFunctionsDefinition.get_any(),
+        'all': IntrinsicFunctionsDefinition.get_all(),
+        'sum': IntrinsicFunctionsDefinition.get_sum(),
     }
 
     def handle(self, node: IntrinsicFunctionNode, params: Params) -> SymbolDefinition:
@@ -43,7 +51,7 @@ class StructReferenceSymbolFetcher(Handler[SymbolDefinition]):
         if isinstance(left_symbol_type, PointerType):
             left_symbol_type = left_symbol_type.element_type
 
-        if isinstance(left_symbol_type, ArrayType) and not node.is_array_slice():
+        if isinstance(left_symbol_type, ArrayType) and not node.indexes_to_array_are_slices():
             left_symbol_type = left_symbol_type.element_type
         
         if not isinstance(left_symbol_type, StructType):

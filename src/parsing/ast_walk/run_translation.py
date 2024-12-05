@@ -30,7 +30,7 @@ def run_translation(
 ):
 
     module = module_dict.get_module(module_name)
-    module_context = module.module_context
+    module_context = module.get_context()
 
     function_symbol: GenericFunctionDefinition = module.module_local_context.get_symbol(function_name)
     function_fnode = function_symbol.fparser_node

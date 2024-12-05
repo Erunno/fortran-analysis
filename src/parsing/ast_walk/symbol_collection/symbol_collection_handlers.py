@@ -1,6 +1,6 @@
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, ReferenceNode, SubscriptTripletNode, UnaryOperatorNode
+from parsing.ast_walk.ast_nodes.expression_ast import BoundsSpecListNode, BoundsSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PointerAssignmentNode, ReferenceNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
 from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
-from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, ProcedureDesignatorNode, SubroutineDefinitionNode, WriteStdoutNode
+from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, CaseConstructNode, CycleStmtNode, ExitStmtNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, MyAstNode, NullifyNode, ProcedureDesignatorNode, ReturnStmtNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Dispatcher, Handler, Params
 from parsing.ast_walk.context_fetch.context_fetch_dispatcher import symbol_fetch_dispatcher
 from parsing.ast_walk.identifier_name_retriever.identifier_name_retriever_dispatcher import identifier_retrieve_dispatcher
@@ -79,6 +79,13 @@ class IfBlockCollector(Handler[SymbolCollection]):
         collection = SymbolCollection()
 
         for branch_stmts in node.branches:
+            if branch_stmts.condition_expr_fnode():
+                condition_collection = self.dispatch(node=branch_stmts.condition_expr_fnode(), params=params)
+                collection = collection.merge(condition_collection)
+
+            if not branch_stmts.condition_expr_fnode() and not branch_stmts.is_else_brach:
+                raise ValueError("If block branch without condition")
+
             for branch_node in branch_stmts.execution_part:
                 node_collection = self.dispatch(node=branch_node, params=params)
                 collection = collection.merge(node_collection)
@@ -87,23 +94,27 @@ class IfBlockCollector(Handler[SymbolCollection]):
 
 class WriteStdoutCollector(Handler[SymbolCollection]):
     def handle(self, node: WriteStdoutNode, params: Params) -> SymbolCollection:
+        # TODO: maybe we should collect the arguments too?
         return SymbolCollection()
 
 class OperatorCollector(Handler[SymbolCollection]):
     def handle(self, node: OperatorNode, params: Params) -> SymbolCollection:
         op_function = self._get_operator_function(node=node, params=params)
 
-        left_collection: SymbolCollection = self.dispatch(node=node.left_expr, params=params)        
-        right_collection: SymbolCollection = self.dispatch(node=node.right_expr, params=params)
+        left_collection: SymbolCollection = self.dispatch(node=node.left_fnode(), params=params)        
+        right_collection: SymbolCollection = self.dispatch(node=node.right_fnode(), params=params)
 
         result_collection = left_collection.merge(right_collection)
         return result_collection.with_function_symbol(op_function) if op_function else result_collection
     
     def _get_operator_function(self, node: OperatorNode, params: Params) -> SymbolCollection:
-        l_type: FortranType = type_dispatcher.dispatch(node=node.left_expr, params=params)
-        r_type: FortranType = type_dispatcher.dispatch(node=node.right_expr, params=params)
+        l_type: FortranType = type_dispatcher.dispatch(node=node.left_fnode(), params=params)
+        r_type: FortranType = type_dispatcher.dispatch(node=node.right_fnode(), params=params)
 
-        return self._find_operator_function(node.operator_sign, l_type, r_type, params)
+        operator_function: OperatorRedefinition = self._find_operator_function(node.operator_sign(), l_type, r_type, params)
+
+        if operator_function and not operator_function.is_default():
+            return operator_function
         
     def _find_operator_function(self, op_sign, l_type: FortranType, r_type: FortranType, params: Params) -> SymbolCollection:
         operators: list[OperatorRedefinition] = params.context.get_operator_symbols(op_sign)
@@ -126,17 +137,17 @@ class AssignmentCollector(OperatorCollector):
     def handle(self, node: AssignmentNode , params: Params) -> SymbolCollection:
         assignment_operator_function = self._get_operator_function(node=node, params=params)
 
-        target_collection = self.dispatch(node=node.target_fnode, params=params).as_write()
-        source_collection = self.dispatch(node=node.source_fnode, params=params)
+        target_collection = self.dispatch(node=node.target_fnode(), params=params).as_write()
+        source_collection = self.dispatch(node=node.source_fnode(), params=params)
 
         result_collection = target_collection.merge(source_collection)
         return result_collection.with_function_symbol(assignment_operator_function) if assignment_operator_function else result_collection
     
     def _get_operator_function(self, node: AssignmentNode, params: Params) -> SymbolCollection:
-        l_type: FortranType = self.dispatch(node=node.target_fnode, params=params)
-        r_type: FortranType = self.dispatch(node=node.source_fnode, params=params)
+        l_type: FortranType = self.dispatch(node=node.target_fnode(), params=params)
+        r_type: FortranType = self.dispatch(node=node.source_fnode(), params=params)
 
-        return self._find_operator_function(node.operator_sign, l_type, r_type, params)
+        return self._find_operator_function(node.operator_sign(), l_type, r_type, params)
 
 class ParenthesisCollector(Handler[SymbolCollection]):  
     def handle(self, node: ParenthesisNode, params: Params) -> SymbolCollection:
@@ -152,15 +163,11 @@ class IntrinsicFunctionCollector(Handler[SymbolCollection]):
         args_collections = [self.dispatch(node=call_arg, params=params) for call_arg in node.call_args_exprs]
         return SymbolCollection.merge_many(args_collections).with_intrinsic_function(node.function_name)
 
-class LiteralCollector(Handler[SymbolCollection]):
-    def handle(self, node: LiteralNode, params: Params) -> SymbolCollection:
-        return SymbolCollection()
-
 class DataRefCollector(Handler[SymbolCollection]):
     def handle(self, node: DataRefNode, params: Params) -> SymbolCollection:
         left_symbol = symbol_fetch_dispatcher.dispatch(node=node.get_left_node(), params=params)
         property_name = identifier_retrieve_dispatcher.dispatch(node=node.last_fnode, params=params)
-        left_symbol_type = _Helpers.unpack_arr_ptr_type(left_symbol.get_type())
+        left_symbol_type: StructType = _Helpers.unpack_arr_ptr_type(left_symbol.get_type())
         property_symbol = left_symbol_type.get_property(property_name, params.module_dictionary)
 
         left_symbol_collection: SymbolCollection = self.dispatch(node=node.get_left_node(), params=params)
@@ -177,8 +184,8 @@ class PartRefCollector(Handler[SymbolCollection]):
 
 class SubscriptTripleCollector(Handler[SymbolCollection]):
     def handle(self, node: SubscriptTripletNode, params: Params) -> SymbolCollection:
-        lower_bound_collection = self.dispatch(node=node.lower_bound_fnode(), params=params)
-        upper_bound_collection = self.dispatch(node=node.upper_bound_fnode(), params=params)
+        lower_bound_collection = self.dispatch(node=node.lower_bound_fnode(), params=params) if node.lower_bound_fnode() else SymbolCollection()
+        upper_bound_collection = self.dispatch(node=node.upper_bound_fnode(), params=params) if node.upper_bound_fnode() else SymbolCollection()
         stride_collection = self.dispatch(node=node.stride_fnode(), params=params) if node.stride_fnode() else SymbolCollection()
 
         return SymbolCollection.merge_many([lower_bound_collection, upper_bound_collection, stride_collection])
@@ -231,3 +238,47 @@ class ForAllTripletCollector(Handler[SymbolCollection]):
 
         return SymbolCollection.merge_many([control_variable_collection, lower_bound_collection, upper_bound_collection, stride_collection])
         
+class NullifyCollector(Handler[SymbolCollection]):
+    def handle(self, node: NullifyNode, params: Params) -> SymbolCollection:
+        collections = [self.dispatch(node=n, params=params) for n in node.arg_expr_fnodes()]
+        return SymbolCollection.merge_many(collections)
+    
+class PointerAssignmentCollector(Handler[SymbolCollection]):
+    def handle(self, node: PointerAssignmentNode, params: Params) -> SymbolCollection:
+        target_collection = self.dispatch(node=node.target_fnode(), params=params)
+        target_bounds_collection = self.dispatch(node=node.target_bounds_fnode(), params=params)
+        source_collection = self.dispatch(node=node.source_fnode(), params=params)
+
+        return target_collection.merge(target_bounds_collection).merge(source_collection)
+    
+class BoundsSpecListCollector(Handler[SymbolCollection]):
+    def handle(self, node: BoundsSpecListNode, params: Params) -> SymbolCollection:
+        collections = [self.dispatch(node=n, params=params) for n in node.bounds_fnodes()]
+        return SymbolCollection.merge_many(collections)
+    
+class BoundsSpecCollector(Handler[SymbolCollection]):
+    def handle(self, node: BoundsSpecNode, params: Params) -> SymbolCollection:
+        lower_bound_collection = self.dispatch(node=node.lower_bound_fnode(), params=params) if node.lower_bound_fnode() else SymbolCollection()
+        upper_bound_collection = self.dispatch(node=node.upper_bound_fnode(), params=params) if node.upper_bound_fnode() else SymbolCollection()
+
+        return lower_bound_collection.merge(upper_bound_collection)
+    
+class FunctionReferenceCollector(Handler[SymbolCollection]):
+    def handle(self, node: FunctionReferenceNode, params: Params) -> SymbolCollection:
+        return self.dispatch(node=node.function_expr_fnode(), params=params)
+
+class CaseConstructCollector(Handler[SymbolCollection]):
+    def handle(self, node: CaseConstructNode, params: Params) -> SymbolCollection:
+        collection = SymbolCollection()
+
+        for case in node.cases():
+            case_collection = self.dispatch(node=case.condition_expr_fnode(), params=params) if case.condition_expr_fnode() else SymbolCollection()
+            branch_collections = [self.dispatch(node=stmt, params=params) for stmt in case.execution_part()]     
+
+            collection = collection.merge(case_collection).merge(SymbolCollection.merge_many(branch_collections))
+
+        return collection
+
+class DoNothingCollector(Handler[SymbolCollection]):
+    def handle(self, node: LiteralNode | ReturnStmtNode | ExitStmtNode | CycleStmtNode, params: Params) -> SymbolCollection:
+        return SymbolCollection()

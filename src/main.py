@@ -66,7 +66,7 @@ modules = [
 
 # analyzer = FunctionAnalyzer(module)
 
-# analyzer.analyze('moloch')
+# analyzer.analyze('moloch', d)
 
 # run_translation(
 #     module_dict=d,

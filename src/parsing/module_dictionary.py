@@ -1,3 +1,4 @@
+from parsing.external_module_libs import ExternalLibs
 from parsing.module import ExternalLibraryModule, FortranModule
 import os
 from Levenshtein import distance as lev
@@ -61,16 +62,3 @@ class ModuleDictionary:
 
         return self.file_system[best_match]
     
-class ExternalLibs:
-    external_libs = {
-        'netcdf': ExternalLibraryModule('netcdf', []),
-        'mpi': ExternalLibraryModule('mpi', []),
-    }
-
-    @staticmethod
-    def is_external(name):
-        return name in ExternalLibs.external_libs
-    
-    @staticmethod
-    def get_module(name):
-        return ExternalLibs.external_libs[name]

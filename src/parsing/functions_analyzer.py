@@ -15,10 +15,10 @@ class FunctionAnalyzer:
     def __init__(self, module: FortranModule):
         self.module = module
 
-    def analyze(self, function_name):
+    def analyze(self, function_name, module_dictionary):
         function_symbol: GenericFunctionDefinition = self.module.module_local_context.get_symbol(function_name)
-        function_local_context = SubroutineFunctionContext(function_symbol.get_definitions())
-        context = self.module.module_context.get_expanded(function_local_context)
+        function_local_context = SubroutineFunctionContext(function_symbol.get_definitions(), module_dictionary)
+        context = self.module.get_context().get_expanded(function_local_context)
 
         used_symbols_names = self.get_used_symbols(function_symbol)
         

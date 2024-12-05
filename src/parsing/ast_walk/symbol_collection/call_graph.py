@@ -19,23 +19,29 @@ class GraphCollector:
 
         visited_functions = set()
 
+
         while queue:
             queue.sort(key=lambda symbol: symbol.key())
 
-            current_function_symbol = queue.pop(0)
-            visited_functions.add(current_function_symbol)
+            # for debugging purposes
+            DEBUG_FUNC_NAME = 'cumtran1'
+            self._move_function_to_front(queue, DEBUG_FUNC_NAME)
 
+            current_function_symbol = queue.pop(0)
+            
             print('Collecting function: ', current_function_symbol)
             
             collected_symbols = self._collect_symbols(current_function_symbol)
             called_functions = collected_symbols.get_function_symbols()
             all_symbols = all_symbols.merge(collected_symbols)
+
+            queue = queue + [f for f in called_functions if f not in visited_functions]
+            visited_functions.add(current_function_symbol)
     
             print(f'Collected {collected_symbols.count()} symbols')
             print(f' --> Called functions: {len(called_functions)}')
-            print(f' --> All symbols: {all_symbols.count()}')            
-
-            queue = queue + [f for f in called_functions if f not in visited_functions]
+            print(f' --> All symbols: {all_symbols.count()}')
+            print(f' --> Visited functions / current total: {len(visited_functions)}/{len(queue) + len(visited_functions)}')    
 
             print()
 
@@ -48,13 +54,17 @@ class GraphCollector:
         
 
     def _collect_symbols(self, function_symbol: GenericFunctionDefinition):
-        function_module = self.module_dict.get_module(function_symbol.defined_in_module_str())
-        function_context = function_module.module_context.get_expanded(function_symbol.get_local_context())
-
         return collectors_dispatcher.dispatch(
             node=function_symbol.fparser_node,
             params=Params(
-                context=function_context,
+                context=function_symbol.get_context(),
                 module_dictionary=self.module_dict,
                 call_stack=[function_symbol]))
+    
+    def _move_function_to_front(self, queue, function_name):
+        for i, f in enumerate(queue):
+            if f.key() == function_name:
+                queue.insert(0, queue.pop(i))
+                return queue
+        return queue
         

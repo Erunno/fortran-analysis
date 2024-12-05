@@ -18,9 +18,9 @@ from fparser.two.Fortran2008 import Attr_Spec_List, Component_Attr_Spec_List
 from fparser.two.Fortran2008.data_component_def_stmt_r436 import Data_Component_Def_Stmt
 from fparser.two.Fortran2008.component_attr_spec_r437 import Component_Attr_Spec
 
-from parsing.context import SubroutineFunctionContext
+from parsing.context import ChainedContext, SubroutineFunctionContext
 from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_node, findall_in_tree
-from parsing.typing import ArrayType, FortranType, FunctionArgumentForType, FunctionType, PointerType, PrimitiveType, StructType, TypeParser, VoidType
+from parsing.typing import ArrayType, FortranType, FunctionArgumentForType, FunctionType, InterfaceType, PointerType, PrimitiveType, StructType, TypeParser, VoidType
 
 class SymbolInitParams:
     def __init__(self, fparser_node, definition_location_symbol: 'SymbolDefinition'):
@@ -50,7 +50,7 @@ class SymbolDefinition:
         return not not self.access_modifier
 
     def __str__(self):
-        return f"{self.class_label()} <{self.key()}> defined in [{self.defined_in()}] in module [{self.defined_in_module_str()}]"
+        return f"{self.class_label()} <{self.key()}> defined in [{self.defined_in()}]"
 
     def __repr__(self):
         return self.__str__()
@@ -58,7 +58,7 @@ class SymbolDefinition:
     def class_label(self):
         return "Symbol"
 
-    def defined_in(self) -> str:
+    def defined_in(self) -> 'SymbolDefinition':
         return self._defined_in_symbol
     
     def defined_in_module_str(self) -> str:
@@ -130,11 +130,9 @@ class VariableDeclaration(SymbolDefinition):
 class FunctionReturnVariableDeclaration(VariableDeclaration):
     def __init__(self,
                  name: str,
-                 function_is_pure: bool,
                  init_params: SymbolInitParams):
         
         super().__init__(name, init_params)
-        self.function_is_pure = function_is_pure
 
     def class_label(self):
         return "FunctionReturnVariable"
@@ -169,6 +167,7 @@ class GenericFunctionDefinition(SymbolDefinition):
         self._type: FortranType = None
         self._local_context = None
         self._definitions = None
+        self.module_dictionary = None
 
     def get_definitions(self) -> 'FortranDefinitions':
         if self._definitions:
@@ -184,10 +183,19 @@ class GenericFunctionDefinition(SymbolDefinition):
 
         return self._definitions
     
+    def _set_module_dictionary(self, module_dictionary):
+        self.module_dictionary = module_dictionary
+
     def get_local_context(self):
         if not self._local_context:
-            self._local_context = SubroutineFunctionContext(self.get_definitions())
+            self._local_context = SubroutineFunctionContext(self.get_definitions(), self.module_dictionary)
         return self._local_context
+
+    def get_context(self):
+        parent_context = self.defined_in().get_context()
+        local_context = self.get_local_context()
+
+        return ChainedContext([parent_context, local_context])
 
     def _get_input_args(self) -> list[FunctionArgumentForType]:
         function_stmt = self.fparser_node.children[0]
@@ -250,13 +258,12 @@ class Function(GenericFunctionDefinition):
     @staticmethod
     def create_from(init_params: SymbolInitParams):
         if isinstance(init_params.fparser_node, Function_Subprogram) and \
-           not Function.is_definition_of_pure_function(init_params.fparser_node):
+           not Function.is_definition_without_result_clause(init_params.fparser_node):
             return Function(init_params)
     
     def _patch_definitions(self, definitions: 'FortranDefinitions') -> 'FortranDefinitions':
         return_variable = FunctionReturnVariableDeclaration(
             name=self._get_return_variable_name(),
-            function_is_pure=Function.is_definition_of_pure_function(self.fparser_node),
             init_params=SymbolInitParams(
                 fparser_node=self.fparser_node,
                 definition_location_symbol=self))
@@ -284,6 +291,15 @@ class Function(GenericFunctionDefinition):
         return name.tostr().lower() if name else None
 
     @staticmethod
+    def is_definition_without_result_clause(fparser_node):
+        prefix = find_in_tree(fparser_node, Prefix)
+        
+        if not prefix:
+            return False
+        
+        return not find_in_tree(prefix, Suffix)
+    
+    @staticmethod
     def is_definition_of_pure_function(fparser_node):
         prefix = find_in_tree(fparser_node, Prefix)
         
@@ -291,20 +307,22 @@ class Function(GenericFunctionDefinition):
             return False
         
         prefix_spec = find_in_tree(prefix, Prefix_Spec)
-        return prefix_spec and prefix_spec.tostr().lower() == "pure"
+        spec_str = prefix_spec.tostr().lower() if prefix_spec else None
 
-class PureFunction(Function):
+        return spec_str == "pure"
+
+class FunctionWithoutResultClause(Function):
     def __init__(self, init_params: SymbolInitParams):
         super().__init__(init_params)
 
     def class_label(self):
-        return "PureFunction"
+        return "FunctionWithoutResultClause"
     
     @staticmethod
     def create_from(init_params):
         if isinstance(init_params.fparser_node, Function_Subprogram) and \
-           Function.is_definition_of_pure_function(init_params.fparser_node):
-            return PureFunction(init_params)
+           Function.is_definition_without_result_clause(init_params.fparser_node):
+            return FunctionWithoutResultClause(init_params)
 
     def _get_return_type(self) -> FortranType:
         prefix = find_in_tree(self.fparser_node, Prefix)
@@ -357,7 +375,13 @@ class Interface(SymbolDefinition):
             
             if find_in_tree(interface_stmt, Name):
                 return Interface(init_params)
+            
+    def get_type(self) -> InterfaceType:
+        return InterfaceType(self.name)
     
+    def get_context(self):
+        return self.defined_in().get_context()
+
     def get_actual_function_symbol(self, call_args_types) -> GenericFunctionDefinition:
         wrapped_functions = self._fetch_wrapped_functions()
 
@@ -465,6 +489,9 @@ class OperatorRedefinition(SymbolDefinition):
         
         return possible_functions[0]
 
+    def is_default():
+        return False
+
     def _set_module_dictionary(self, module_dictionary):
         self.module_dictionary = module_dictionary
     
@@ -488,7 +515,7 @@ class OperatorRedefinition(SymbolDefinition):
             return self._operator_functions
         
         self_module = self.module_dictionary.get_module(self.defined_in_module_str())
-        self._operator_functions = [self_module.module_context.get_symbol(name) for name in self._fetch_operator_function_names()]
+        self._operator_functions = [self_module.get_context().get_symbol(name) for name in self._fetch_operator_function_names()]
 
         return self._operator_functions
 
@@ -723,6 +750,28 @@ class Type(SymbolDefinition):
             if not struct_type.is_equivalent(first_arg.arg_type):
                 raise ValueError(f"Method {method} does not have the struct as the first argument")
 
+class ExternalSymbol(SymbolDefinition):
+    def __init__(self, name, type):
+        super().__init__(SymbolInitParams(fparser_node=None, definition_location_symbol=None))
+        self.name = name
+        self._type = type
+        self._is_public = True
+
+    def key(self):
+        return self.name.lower()
+
+    def class_label(self):
+        return "ExternalSymbol"
+
+    def get_type(self):
+        return self._type
+    
+    def _set_module(self, module):
+        self._defined_in_symbol = module
+
+    def get_actual_function_symbol(self, call_args_types):
+        return self
+
 class AccessModifier:
     def __init__(self, init_params: SymbolInitParams):
         self.fparser_node = init_params.fparser_node
@@ -780,7 +829,7 @@ class FortranDefinitions:
             (Subroutine.create_from, self.subroutines),
             (Interface.create_from, self.interfaces),
             (Function.create_from, self.functions),
-            (PureFunction.create_from, self.functions),
+            (FunctionWithoutResultClause.create_from, self.functions),
             (Type.create_from, self.types),
             (OperatorRedefinition.create_from, self.operator_redefinitions),
         ]
@@ -814,7 +863,7 @@ class FortranDefinitions:
                 if isinstance(symbol, AccessModifier) and symbol.is_global():
                     self.defining_public = symbol.defines_public()
 
-                if isinstance(symbol, (Interface, Type, OperatorRedefinition)):
+                if isinstance(symbol, (Interface, Type, OperatorRedefinition, GenericFunctionDefinition)):
                     symbol._set_module_dictionary(self.module_dictionary)
 
                 symbols = [symbol] if not isinstance(symbol, list) else symbol 

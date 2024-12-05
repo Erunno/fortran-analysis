@@ -62,4 +62,4 @@ class Dispatcher[TDispReturn]:
 
         print(f"\033[91m{msg}\033[0m")
 
-        # raise NotImplementedError(msg)
+        raise NotImplementedError(msg)

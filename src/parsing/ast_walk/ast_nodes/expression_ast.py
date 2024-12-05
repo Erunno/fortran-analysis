@@ -1,7 +1,7 @@
-from parsing.ast_walk.ast_nodes.my_ats_node import MyAstNode
+from parsing.ast_walk.ast_nodes.my_ats_node import CallNode, MyAstNode
 from fparser.two.Fortran2003 import Add_Operand, Mult_Operand, Parenthesis, Part_Ref, Name, Intrinsic_Function_Reference, \
     Int_Literal_Constant, Real_Literal_Constant, Char_Literal_Constant, Boz_Literal_Constant, Logical_Literal_Constant, Data_Ref, \
-    Base, Section_Subscript_List, Subscript_Triplet, Level_2_Unary_Expr
+    Base, Section_Subscript_List, Subscript_Triplet, Level_2_Unary_Expr, Procedure_Designator
 
 from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_node, findall_in_tree
 
@@ -15,18 +15,39 @@ class _Helpers:
             return False
 
         if len(triplets) != len(subscript_list.children):
-            raise ValueError("Subscript list has non-triplet elements")
+            pass
 
         return True
+    
+    @staticmethod
+    def get_slices_dimensions(fnode):
+        subscript_list = find_in_node(fnode, Section_Subscript_List)
 
+        sliced_dims = []
+
+        for dim, child in enumerate(subscript_list.children):
+            if isinstance(child, Subscript_Triplet):
+                sliced_dims.append(dim)
+
+        return sliced_dims
+
+    @staticmethod
+    def is_reference_without_indexing(fnode):
+        subscript_list = find_in_tree(fnode, Section_Subscript_List)
+        return subscript_list is None
 
 class OperatorNode(MyAstNode[Add_Operand | Mult_Operand]):
     def __init__(self, fnode: Add_Operand | Mult_Operand):
         super().__init__(fnode)
-        
-        self.left_expr = fnode.children[0]
-        self.operator_sign = fnode.children[1]
-        self.right_expr = fnode.children[2]
+    
+    def left_fnode(self):
+        return self.fnode.children[0]
+    
+    def operator_sign(self):
+        return self.fnode.children[1]
+    
+    def right_fnode(self):
+        return self.fnode.children[2]
 
 class UnaryOperatorNode(MyAstNode[Level_2_Unary_Expr]):
     def __init__(self, fnode: Level_2_Unary_Expr):
@@ -81,6 +102,9 @@ class DataRefNode(MyAstNode[Data_Ref]):
 
     def indexes_to_array_are_slices(self):
         return _Helpers.indexes_to_array_in_reference_are_slices(self.last_fnode)
+    
+    def is_reference_without_indexing(self):
+        return _Helpers.is_reference_without_indexing(self.fnode)
 
     def get_left_node(self):
         fnodes = self.fnode[:-1] if isinstance(self.fnode, (list, tuple)) else self.fnode.children[:-1]
@@ -90,8 +114,8 @@ class DataRefNode(MyAstNode[Data_Ref]):
         
         return DataRefNode(fnodes)
 
-    def is_array_slice(self):
-        return _Helpers.indexes_to_array_in_reference_are_slices(self.last_fnode)
+    def get_sliced_dimensions(self):
+        return _Helpers.get_slices_dimensions(self.last_fnode)
 
 class PartRefNode(MyAstNode[Part_Ref]):
     def __init__(self, fnode: Part_Ref):
@@ -101,6 +125,12 @@ class PartRefNode(MyAstNode[Part_Ref]):
     def indexes_to_array_are_slices(self):
         return _Helpers.indexes_to_array_in_reference_are_slices(self.fnode)
     
+    def is_reference_without_indexing(self):
+        return _Helpers.is_reference_without_indexing(self.fnode)
+    
+    def get_sliced_dimensions(self):
+        return _Helpers.get_slices_dimensions(self.fnode)
+
     def ref_name_fnode(self):
         return self.fnode.children[0]
 
@@ -120,3 +150,65 @@ class SubscriptTripletNode(MyAstNode[Subscript_Triplet]):
 
     def stride_fnode(self):
         return self.fnode.children[2] 
+
+class PointerAssignmentNode(MyAstNode[Base]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+    def target_fnode(self):
+        return self.fnode.children[0]
+    
+    def target_bounds_fnode(self):
+        return self.fnode.children[1]
+    
+    def source_fnode(self):
+        return self.fnode.children[2]
+
+class BoundsSpecListNode(MyAstNode[Base]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+    def bounds_fnodes(self):
+        return self.fnode.children
+
+class BoundsSpecNode(MyAstNode[Base]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+    def lower_bound_fnode(self):
+        return self.fnode.children[0]
+    
+    def upper_bound_fnode(self):
+        return self.fnode.children[1]
+    
+class FunctionReferenceNode(MyAstNode[Base]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+        if not self._children_are_procedure_designator_and_NONE(fnode):
+            raise NotImplementedError("New case that is not handled")
+
+    def function_expr_fnode(self):
+        return self.fnode.children[0]
+    
+    def _children_are_procedure_designator_and_NONE(self, fnode):
+        return len(fnode.children) == 2 and isinstance(fnode.children[0], Procedure_Designator) and fnode.children[1] is None
+    
+class StructureConstructorNode(CallNode):
+    ## !!! 
+    ##      Warning: fparser seams to wrap (some) function calls in a StructureConstructor node
+    ##               therefore I will mask this class as a CallNode
+    ##               ... unless I find a case where a actual structure constructor is used
+    ## !!!
+
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+    # reimplement the CallNode methods
+
+    def get_call_identifier_fnode(self):
+        return NameNode(self.fnode.children[0])
+
+    def get_argument_expression_fnodes(self):
+        return self.fnode.children[1].children if self.fnode.children[1] is not None else []
+  
