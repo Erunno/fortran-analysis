@@ -1,6 +1,6 @@
 
 
-from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode, UnaryOperatorNode
+from parsing.ast_walk.ast_nodes.expression_ast import ArraySectionNode, ComponentSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode, UnaryOperatorNode
 from parsing.ast_walk.ast_nodes.my_ats_node import ProcedureDesignatorNode
 from parsing.ast_walk.dispatcher import Handler, Params
 from parsing.definitions import Interface, OperatorRedefinition
@@ -33,6 +33,10 @@ class _TypeHelpers:
             return ArrayType(
                 arr_type.element_type,
                 new_dims)
+        
+        if PrimitiveType.is_string(arr_type):
+            # TODO: make the length sliced
+            return arr_type
 
 class OperatorTyper(Handler[FortranType]):
     def handle(self, node: OperatorNode, params: Params) -> FortranType:
@@ -114,8 +118,8 @@ class LiteralTyper(Handler[FortranType]):
             return_type = PrimitiveType.get_integer_instance()
             return_type.add_attribute('kind', PrimitiveType.default_int_kind())
 
-        elif re.match(r'^-?\d*\.\d*', val):
-            return_type = PrimitiveType.get_real_instance()
+        elif val.lower() == '.true.' or val.lower() == '.false.':
+            return_type = PrimitiveType.get_logical_instance()
 
         elif re.match(r"^'.'$", val):
             return_type = PrimitiveType.get_character_instance()
@@ -123,11 +127,14 @@ class LiteralTyper(Handler[FortranType]):
         elif re.match(r"^'.*'$", val):
             return_type = PrimitiveType.get_string_instance()
 
-        elif val.lower() == '.true.' or val.lower() == '.false.':
-            return_type = PrimitiveType.get_logical_instance()
+        elif re.match(r'^-?\d*\.\d*', val):
+            return_type = PrimitiveType.get_real_instance().with_any_kind()
 
         elif re.match(r'^-?\d*\.[eE]\d+$', val):
-            return_type = PrimitiveType.get_real_instance()
+            return_type = PrimitiveType.get_real_instance().with_any_kind()
+
+        elif re.match(r'^-?\d*[eE]-?\d+$', val):
+            return_type = PrimitiveType.get_real_instance().with_any_kind()
 
         else:
             raise ValueError(f"Unknown literal type for value {node.value}")
@@ -151,3 +158,12 @@ class ProcedureDesignatorTyper(Handler[FortranType]):
     def handle(self, node: ProcedureDesignatorNode, params: Params) -> FortranType:
         function_symbol = symbol_fetch_dispatcher.dispatch(node=node, params=params)
         return function_symbol.get_type().return_type
+    
+class ArraySectionTyper(Handler[FortranType]):
+    def handle(self, node: ArraySectionNode, params: Params) -> FortranType:
+        arr_type = self.dispatch(node=node.array_fnode(), params=params)
+        return _TypeHelpers.get_sliced_array(arr_type, node.get_sliced_dimensions())
+    
+class ComponentSpecTyper(Handler[FortranType]):
+    def handle(self, node: ComponentSpecNode, params: Params) -> FortranType:
+        return self.dispatch(node=node.component_expr_fnode(), params=params)

@@ -1,6 +1,6 @@
-from parsing.ast_walk.ast_nodes.expression_ast import BoundsSpecListNode, BoundsSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PointerAssignmentNode, ReferenceNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
+from parsing.ast_walk.ast_nodes.expression_ast import ArraySectionNode, BoundsSpecListNode, BoundsSpecNode, ComponentSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PointerAssignmentNode, ReferenceNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
 from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
-from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, CaseConstructNode, CycleStmtNode, ExitStmtNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, MyAstNode, NullifyNode, ProcedureDesignatorNode, ReturnStmtNode, SubroutineDefinitionNode, WriteStdoutNode
+from parsing.ast_walk.ast_nodes.my_ats_node import AllocOptNode, AllocateNode, AssignmentNode, CallNode, CaseConstructNode, CycleStmtNode, DeallocateNode, ExitStmtNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, MyAstNode, NullifyNode, ProcedureDesignatorNode, ReturnStmtNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Dispatcher, Handler, Params
 from parsing.ast_walk.context_fetch.context_fetch_dispatcher import symbol_fetch_dispatcher
 from parsing.ast_walk.identifier_name_retriever.identifier_name_retriever_dispatcher import identifier_retrieve_dispatcher
@@ -245,7 +245,9 @@ class NullifyCollector(Handler[SymbolCollection]):
 class PointerAssignmentCollector(Handler[SymbolCollection]):
     def handle(self, node: PointerAssignmentNode, params: Params) -> SymbolCollection:
         target_collection = self.dispatch(node=node.target_fnode(), params=params)
-        target_bounds_collection = self.dispatch(node=node.target_bounds_fnode(), params=params)
+        target_bounds_collection = self.dispatch(node=node.target_bounds_fnode(), params=params) \
+            if node.target_bounds_fnode() else SymbolCollection()
+        
         source_collection = self.dispatch(node=node.source_fnode(), params=params)
 
         return target_collection.merge(target_bounds_collection).merge(source_collection)
@@ -281,3 +283,33 @@ class CaseConstructCollector(Handler[SymbolCollection]):
 class DoNothingCollector(Handler[SymbolCollection]):
     def handle(self, node: LiteralNode | ReturnStmtNode | ExitStmtNode | CycleStmtNode, params: Params) -> SymbolCollection:
         return SymbolCollection()
+    
+class ArraySectionCollector(Handler[SymbolCollection]):
+    def handle(self, node: ArraySectionNode, params: Params) -> SymbolCollection:
+        array_collection = self.dispatch(node=node.array_fnode(), params=params)
+        subscript_collections = [self.dispatch(node=arg, params=params) for arg in node.args_fnodes()]
+        
+        return SymbolCollection.merge_many([array_collection] + subscript_collections)
+
+class ComponentSpecCollector(Handler[SymbolCollection]):
+    def handle(self, node: ComponentSpecNode, params: Params) -> SymbolCollection:
+        return self.dispatch(node=node.component_expr_fnode(), params=params)
+    
+class AllocateNodeCollector(Handler[SymbolCollection]):
+    def handle(self, node: AllocateNode, params: Params) -> SymbolCollection:
+        # TODO: this is fucked ... unfuck it
+        return SymbolCollection()
+
+        args_collections = [self.dispatch(node=arg, params=params) for arg in node.get_allocated_fnodes()]
+        opts_collections = [self.dispatch(node=opt, params=params) for opt in node.get_alloc_opt_fnodes()]
+
+        return SymbolCollection.merge_many(args_collections + opts_collections)
+
+class AllocOptCollector(Handler[SymbolCollection]):
+    def handle(self, node: AllocOptNode, params: Params) -> SymbolCollection:
+        return self.dispatch(node=node.opt_expression_fnode(), params=params)
+
+class DeallocateNodeCollector(Handler[SymbolCollection]):
+    def handle(self, node: DeallocateNode, params: Params) -> SymbolCollection:
+        args_collections = [self.dispatch(node=arg, params=params) for arg in node.get_deallocated_fnodes()]
+        return SymbolCollection.merge_many(args_collections)

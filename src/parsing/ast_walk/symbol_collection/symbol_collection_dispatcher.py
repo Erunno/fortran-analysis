@@ -1,10 +1,10 @@
 
-from parsing.ast_walk.ast_nodes.expression_ast import BoundsSpecListNode, BoundsSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, PointerAssignmentNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
-from parsing.ast_walk.ast_nodes.my_ats_node import AssignmentNode, CallNode, CaseConstructNode, CycleStmtNode, ExitStmtNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, NullifyNode, ProcedureDesignatorNode, ReturnStmtNode, SubroutineDefinitionNode, WriteStdoutNode
+from parsing.ast_walk.ast_nodes.expression_ast import ArraySectionNode, BoundsSpecListNode, BoundsSpecNode, ComponentSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, PointerAssignmentNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
+from parsing.ast_walk.ast_nodes.my_ats_node import AllocOptNode, AllocateNode, AssignmentNode, CallNode, CaseConstructNode, ContinueStmtNode, CycleStmtNode, DeallocateNode, ExitStmtNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, NullifyNode, ProcedureDesignatorNode, ReturnStmtNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Dispatcher
 from parsing.ast_walk.symbol_collection.symbol_collection import SymbolCollection
-from parsing.ast_walk.symbol_collection.symbol_collection_handlers import AssignmentCollector, BoundsSpecCollector, BoundsSpecListCollector, CallSubroutineCollector, CaseConstructCollector, \
-    DataRefCollector, DoNothingCollector, ForAllHeaderCollector, ForAllTripletCollector, ForLoopCollector, FunctionDefinitionCollector, IfBlockCollector, \
+from parsing.ast_walk.symbol_collection.symbol_collection_handlers import AllocOptCollector, AllocateNodeCollector, ArraySectionCollector, AssignmentCollector, BoundsSpecCollector, BoundsSpecListCollector, CallSubroutineCollector, CaseConstructCollector, ComponentSpecCollector, \
+    DataRefCollector, DeallocateNodeCollector, DoNothingCollector, ForAllHeaderCollector, ForAllTripletCollector, ForLoopCollector, FunctionDefinitionCollector, IfBlockCollector, \
     IntrinsicFunctionCollector, LoopControlCollector, NameCollector, NullifyCollector, OperatorCollector, ParenthesisCollector, PartRefCollector, \
     PointerAssignmentCollector, ProcedureDesignatorCollector, SubscriptTripleCollector, UnaryOperatorCollector, WriteStdoutCollector, \
     FunctionReferenceCollector
@@ -15,6 +15,7 @@ collectors_dispatcher.register(DoNothingCollector).for_node(LiteralNode)
 collectors_dispatcher.register(DoNothingCollector).for_node(ReturnStmtNode)
 collectors_dispatcher.register(DoNothingCollector).for_node(ExitStmtNode)
 collectors_dispatcher.register(DoNothingCollector).for_node(CycleStmtNode)
+collectors_dispatcher.register(DoNothingCollector).for_node(ContinueStmtNode)
 
 collectors_dispatcher.register(AssignmentCollector).for_node(AssignmentNode)
 collectors_dispatcher.register(FunctionDefinitionCollector).for_node(FunctionDefinitionNode)
@@ -42,3 +43,8 @@ collectors_dispatcher.register(BoundsSpecListCollector).for_node(BoundsSpecListN
 collectors_dispatcher.register(BoundsSpecCollector).for_node(BoundsSpecNode)
 collectors_dispatcher.register(FunctionReferenceCollector).for_node(FunctionReferenceNode)
 collectors_dispatcher.register(CaseConstructCollector).for_node(CaseConstructNode)
+collectors_dispatcher.register(ArraySectionCollector).for_node(ArraySectionNode)
+collectors_dispatcher.register(ComponentSpecCollector).for_node(ComponentSpecNode)
+collectors_dispatcher.register(AllocateNodeCollector).for_node(AllocateNode)
+collectors_dispatcher.register(DeallocateNodeCollector).for_node(DeallocateNode)
+collectors_dispatcher.register(AllocOptCollector).for_node(AllocOptNode)

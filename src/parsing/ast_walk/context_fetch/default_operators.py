@@ -48,11 +48,17 @@ def _return_right(l, r):
     return r
 
 def _return_bool_array_of_same_size(l: ArrayType | PointerType, r):
-    if not isinstance(l, PointerType):
+    if isinstance(l, PointerType):
         return PointerType(_return_bool_array_of_same_size(l.element_type, r))
     
     return ArrayType(PrimitiveType.get_logical_instance().with_any_kind(), l.dimensions)
 
+def _are_strings(l, r):
+    return PrimitiveType.is_string(l) and PrimitiveType.is_string(r)
+
+def _return_string(l: PrimitiveType, r: PrimitiveType):
+    combined_len = l.get_added_length(r)
+    return PrimitiveType.get_string_instance().with_length(combined_len)
 
 _unification_cases = [
     # (left_type, right_type, condition, return_type)
@@ -76,6 +82,11 @@ _logical_unification_cases = [
     (PointerType, PrimitiveType,    _types_are_number_based,    _return_bool_array_of_same_size),
 ]
 
+_string_concatenation_cases = [
+    # (left_type, right_type, condition, return_type)
+    (PrimitiveType, PrimitiveType,  _are_strings,              _return_string),
+]
+
 class DefaultOperator(OperatorRedefinition):
     def __init__(self, op_sign: str, input_cases):
         self._operator_sign = op_sign
@@ -92,7 +103,7 @@ class DefaultOperator(OperatorRedefinition):
         return f_symbol is not None
     
     def get_function_symbol_for_types(self, left_type, right_type):
-        for l_type, r_type, condition, return_type in _unification_cases:
+        for l_type, r_type, condition, return_type in self._input_cases:
             if isinstance(left_type, l_type) and isinstance(right_type, r_type) and condition(left_type, right_type):
                 return DefaultOperatorFunctionSymbol(left_type, right_type, return_type(left_type, right_type))
 
@@ -116,13 +127,36 @@ class DefaultOperator(OperatorRedefinition):
         return DefaultOperator("==", _logical_unification_cases)
     
     @staticmethod
+    def ne():
+        return DefaultOperator("/=", _logical_unification_cases)
+    
+    @staticmethod
+    def lt():
+        return DefaultOperator("<", _logical_unification_cases)
+    
+    @staticmethod
+    def gt():
+        return DefaultOperator(">", _logical_unification_cases)
+    
+    @staticmethod
+    def le():
+        return DefaultOperator("<=", _logical_unification_cases)
+    
+    @staticmethod
+    def ge():
+        return DefaultOperator(">=", _logical_unification_cases)
+
+    @staticmethod
     def or_():
         return DefaultOperator(".or.", _logical_unification_cases)
     
     @staticmethod
     def and_():
         return DefaultOperator(".and.", _logical_unification_cases)
-    
+
+    @staticmethod
+    def concat():
+        return DefaultOperator("//", _string_concatenation_cases)
 
 class DefaultOperatorContext:
     
@@ -139,8 +173,14 @@ class DefaultOperatorContext:
         '/':     DefaultOperator.div(),
         '*':     DefaultOperator.mul(),
         '==':    DefaultOperator.eq(),
+        '/=':    DefaultOperator.ne(),
         '.or.':  DefaultOperator.or_(),
         '.and.': DefaultOperator.and_(),
+        '<':     DefaultOperator.lt(),
+        '>':     DefaultOperator.gt(),
+        '<=':    DefaultOperator.le(),
+        '>=':    DefaultOperator.ge(),
+        '//':    DefaultOperator.concat(),
     }
 
     def get_symbol(self, _):
@@ -151,8 +191,4 @@ class DefaultOperatorContext:
     
     def get_operator_symbols(self, op: str):
         ops = [self.get_operator(op)] if op in self._ops else []
-        
-        if len(ops) != 0:
-            pass
-
         return ops

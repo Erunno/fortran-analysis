@@ -112,7 +112,7 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
     @staticmethod
     def get_trim():
         type = FunctionType(
-            return_type=PrimitiveType.get_string_instance().with_attribute('len', '*'),
+            return_type=PrimitiveType.get_string_instance().with_infinite_length(),
             arg_types=[
                 FunctionArgumentForType('input_string', PrimitiveType.get_string_instance().any_kind(), is_optional=False)
             ]
@@ -248,3 +248,30 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
         )
 
         return IntrinsicFunctionsDefinition('size', type)
+    
+    @staticmethod
+    def get_sign():
+        type = FunctionType(
+            return_type=PrimitiveType.get_any_number_instance(),
+            arg_types=[
+                FunctionArgumentForType('a', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('b', PrimitiveType.get_any_number_instance(), is_optional=False),
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('sign', type)
+
+    @staticmethod
+    def get_max0():
+        type = FunctionType(
+            return_type=PrimitiveType.get_any_number_instance(),
+            arg_types=[
+                FunctionArgumentForType('a', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('b', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('c', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('d', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('e', PrimitiveType.get_any_number_instance(), is_optional=True),
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('max0', type)

@@ -9,7 +9,7 @@ from fparser.two.Fortran2003 import Program, Module, Specification_Part, \
     Suffix, Component_Part, Component_Decl_List, Component_Decl, Dimension_Component_Attr_Spec, \
     Deferred_Shape_Spec_List, Procedure_Stmt, Subroutine_Body,  Generic_Spec, \
     Specific_Binding, Type_Bound_Procedure_Part, Contains_Stmt, Int_Literal_Constant, \
-    Prefix, Prefix_Spec, Extended_Intrinsic_Op, Only_List
+    Prefix, Prefix_Spec, Extended_Intrinsic_Op, Only_List, Rename
     
 
 from fparser.two.Fortran2008 import Procedure_Name_List    
@@ -127,6 +127,21 @@ class VariableDeclaration(SymbolDefinition):
     def _parse_type(self, fparser_node: Type_Declaration_Stmt):
         return TypeParser.parse_type(fparser_node, module_of_definition=self.defined_in_module_str())
 
+class ImportRenamedSymbol(SymbolDefinition):
+    def __init__(self, new_name, inner_symbol: SymbolDefinition, module_of_renaming):
+        self.inner_symbol = inner_symbol
+        self.name = new_name
+        self.module_of_renaming = module_of_renaming
+
+    def class_label(self):
+        return "ImportRenamedSymbol"
+
+    def defined_in(self):
+        return self.module_of_renaming
+
+    def __getattr__(self, item):
+        return getattr(self.inner_symbol, item)
+
 class FunctionReturnVariableDeclaration(VariableDeclaration):
     def __init__(self,
                  name: str,
@@ -163,10 +178,43 @@ class UsingStatement(SymbolDefinition):
     
     def get_imported_names(self):
         only_list = find_in_node(self.fparser_node, Only_List)
-        return [name.tostr().lower() for name in only_list.children]
+
+        returned_names = []
+
+        for name in only_list.children:
+            if isinstance(name, Name):
+                returned_names.append(name.tostr().lower())
+            elif isinstance(name, Rename):
+                if not (name.children[0] is None and isinstance(name.children[1], Name) and isinstance(name.children[1], Name)):
+                    raise NotImplementedError(f"Rename {name} not supported yet")
+
+                new_name_of_the_symbol = name.children[1].tostr().lower()
+                returned_names.append(new_name_of_the_symbol)
+            else:
+                raise NotImplementedError(f"Only list element {name} not supported yet")
+
+        return returned_names
     
     def has_only_clause(self):
         return find_in_node(self.fparser_node, Only_List) is not None
+    
+    def get_renaming(self):
+        only_list = find_in_node(self.fparser_node, Only_List)
+        
+        if not only_list:
+            return {}
+        
+        renaming = {}
+
+        for name in only_list.children:
+            if isinstance(name, Rename):
+
+                new_name_of_the_symbol = name.children[1].tostr().lower()
+                actual_name_of_the_symbol = name.children[2].tostr().lower()
+                
+                renaming[new_name_of_the_symbol] = actual_name_of_the_symbol
+
+        return renaming
 
 class GenericFunctionDefinition(SymbolDefinition):
     def __init__(self, init_params: SymbolInitParams):

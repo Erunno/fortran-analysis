@@ -3,7 +3,9 @@ from fparser.two.Fortran2003 import Base, Program, Assignment_Stmt, Subroutine_S
                                     Execution_Part, StmtBase, Call_Stmt, Name, If_Construct, Else_Stmt, Else_If_Stmt, Write_Stmt, End_If_Stmt, \
                                     Actual_Arg_Spec_List, Procedure_Designator, Part_Ref, Forall_Triplet_Spec_List, Forall_Header, \
                                     Subscript_Triplet, If_Stmt, If_Then_Stmt, Subroutine_Body, Specification_Part, End_Subroutine_Stmt, Select_Case_Stmt, \
-                                    Case_Stmt, End_Select_Stmt, Case_Selector, Case_Value_Range_List
+                                    Case_Stmt, End_Select_Stmt, Case_Selector, Case_Value_Range_List, Allocation_List, Allocate_Object_List
+
+from fparser.two.Fortran2008 import Alloc_Opt_List
 
 from fparser.two.Fortran2008.block_nonlabel_do_construct_r814_2 import Block_Nonlabel_Do_Construct
 from fparser.two.Fortran2008.loop_control_r818 import Loop_Control
@@ -204,6 +206,10 @@ class CycleStmtNode(MyAstNode[Base]):
         # label can be used to cycle (see Subroutine <cup> defined in [Module mod_cu_grell])
         return self.fnode.children[1]
 
+class ContinueStmtNode(MyAstNode[Base]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
 class OneCaseBranch:
     def __init__(self, fnode_condition):
         self.condition_fnode = fnode_condition
@@ -247,3 +253,50 @@ class CaseConstructNode(MyAstNode[Base]):
     
     def cases(self) -> list[OneCaseBranch]:
         return self._branches
+    
+class AllocateNode(MyAstNode[Base]):
+    def __init__(self, fnode):
+        super().__init__(fnode)
+
+        if not self._fst_ch_is_NONE_second_aloc_list_third_is_aloc_op_list(fnode):
+            raise NotImplementedError("This case is not handled yet")
+
+    def _fst_ch_is_NONE_second_aloc_list_third_is_aloc_op_list(self, fnode):
+        return len(fnode.children) == 3 and \
+            fnode.children[0] is None and \
+            isinstance(fnode.children[1], Allocation_List) and \
+            isinstance(fnode.children[2], Alloc_Opt_List)
+
+    def get_allocated_fnodes(self):
+        alloc_list = find_in_node(self.fnode, Allocation_List)
+        return alloc_list.children
+    
+    def get_alloc_opt_fnodes(self):
+        alloc_opt_list = find_in_node(self.fnode, Alloc_Opt_List)
+        return alloc_opt_list.children
+
+class AllocOptNode(MyAstNode[Base]):
+    def __init__(self, fnode):
+        super().__init__(fnode)
+
+    def op_name(self):
+        return self.fnode.children[0]
+    
+    def opt_expression_fnode(self):
+        return self.fnode.children[1]
+    
+class DeallocateNode(MyAstNode[Base]):
+    def __init__(self, fnode):
+        super().__init__(fnode)
+
+        if not self._fst_ch_is_alloc_list_scd_is_none(fnode):
+            raise NotImplementedError("This case is not handled yet")
+
+    def _fst_ch_is_alloc_list_scd_is_none(self, fnode):
+        return len(fnode.children) == 2 and \
+            isinstance(fnode.children[0], Allocate_Object_List) and \
+            fnode.children[1] is None
+
+    def get_deallocated_fnodes(self):
+        alloc_list = find_in_node(self.fnode, Allocate_Object_List)
+        return alloc_list.children

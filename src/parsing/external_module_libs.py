@@ -6,7 +6,100 @@ from parsing.typing import ArrayType, FunctionArgumentForType, FunctionType, Pri
 
 class ExternalLibs:
     external_libs = {
-        'netcdf': ExternalLibraryModule('netcdf', []),
+        'netcdf': ExternalLibraryModule('netcdf', [
+            ExternalSymbol(
+                name='nf90_open',
+                type=FunctionType(
+                    return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+                    arg_types=[
+                        FunctionArgumentForType(name='path', arg_type=PrimitiveType.get_character_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='mode', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='ncid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)
+                    ]
+                )
+            ),
+            ExternalSymbol(
+                name='NF90_NOWRITE',
+                type=PrimitiveType.get_integer_instance().with_any_kind()
+            ),
+            ExternalSymbol(
+                name='nf90_noerr',
+                type=PrimitiveType.get_integer_instance().with_any_kind()
+            ),
+            ExternalSymbol(
+                name='nf90_inq_dimid',
+                type=FunctionType(
+                    return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+                    arg_types=[
+                        FunctionArgumentForType(name='ncid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='name', arg_type=PrimitiveType.get_string_instance().with_infinite_length(), is_optional=False),
+                        FunctionArgumentForType(name='dimid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)
+                    ]
+                )
+            ),
+            ExternalSymbol(
+                name='nf90_inquire_dimension',
+                type=FunctionType(
+                    return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+                    arg_types=[
+                        FunctionArgumentForType(name='ncid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='dimid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='len', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)
+                    ]
+                )
+            ),
+            ExternalSymbol(
+                name='nf90_inq_varid',
+                type=FunctionType(
+                    return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+                    arg_types=[
+                        FunctionArgumentForType(name='ncid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='name', arg_type=PrimitiveType.get_string_instance().with_infinite_length(), is_optional=False),
+                        FunctionArgumentForType(name='varid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)
+                    ]
+                )
+            ),
+            ExternalSymbol(
+                name='nf90_strerror',
+                type=FunctionType(
+                    return_type=PrimitiveType.get_string_instance().with_infinite_length(),
+                    arg_types=[
+                        FunctionArgumentForType(name='ncerr', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)
+                    ]
+                )
+            ),
+            ExternalSymbol(
+                name='nf90_close',
+                type=FunctionType(
+                    return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+                    arg_types=[
+                        FunctionArgumentForType(name='ncid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)
+                    ]
+                )
+            ),
+            ExternalSymbol(
+                name='nf90_get_var',
+                type=FunctionType(
+                    return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+                    arg_types=[
+                        FunctionArgumentForType(name='ncid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='varid', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        
+                        FunctionArgumentForType(name='start', arg_type=ArrayType(
+                            element_type=PrimitiveType.get_real_instance().with_any_kind(), 
+                            dimensions=[ArrayType.variable_length()]), is_optional=False),
+                        
+                        FunctionArgumentForType(name='count', arg_type=ArrayType(
+                            element_type=PrimitiveType.get_integer_instance().with_any_kind(), 
+                            dimensions=[ArrayType.variable_length()]), is_optional=False),
+
+                        FunctionArgumentForType(name='data', arg_type=ArrayType(
+                            element_type=PrimitiveType.get_integer_instance().with_any_kind(), 
+                            dimensions=[ArrayType.variable_length()]), is_optional=False),
+                    ]
+                )
+            )
+        ]),
         'mpi': ExternalLibraryModule('mpi', [
             ExternalSymbol(
                 name='mpi_allreduce',
@@ -28,6 +121,10 @@ class ExternalLibs:
                 type=PrimitiveType.get_integer_instance().with_any_kind()
             ),
             ExternalSymbol(
+                name='mpi_integer4',
+                type=PrimitiveType.get_integer_instance().with_any_kind()
+            ),
+            ExternalSymbol(
                 name='mpi_real8',
                 type=PrimitiveType.get_integer_instance().with_any_kind()
             ),
@@ -41,6 +138,10 @@ class ExternalLibs:
             ),
             ExternalSymbol(
                 name='mpi_min',
+                type=PrimitiveType.get_integer_instance().with_any_kind()
+            ),
+            ExternalSymbol(
+                name='mpi_sum',
                 type=PrimitiveType.get_integer_instance().with_any_kind()
             ),
             ExternalSymbol(

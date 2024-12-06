@@ -98,6 +98,30 @@ class PrimitiveType(FortranType):
     def with_any_kind(self):
         return self.with_attribute('kind', PrimitiveType.any_kind())
 
+    def with_infinite_length(self):
+        return self.with_length('*')
+
+    def with_length(self, length):
+        if length == float('inf'):
+            length = '*'
+
+        return self.with_attribute('length', str(length))
+
+    def has_infinite_length(self):
+        return self.attributes.get('length') == '*'
+
+    def get_length(self):
+        return self.attributes.get('length', None)
+    
+    def get_added_length(self: 'PrimitiveType', other: 'PrimitiveType') -> str:
+        len1 = self.get_length()
+        len2 = other.get_length()
+        
+        if len1 == '*' or len2 == '*':
+            return '*'
+        
+        return str(int(len1) + int(len2))
+
     def get_unified_with(self, other_type) -> FortranType:
         if not isinstance(other_type, PrimitiveType):
             raise ValueError("Cannot unify primitive type with non-primitive type")
@@ -210,10 +234,14 @@ class PrimitiveType(FortranType):
         return PrimitiveType("character")
     
     @staticmethod
+    def is_string(type):
+        return isinstance(type, PrimitiveType) and type.name == "character" and 'length' in type.attributes
+
+    @staticmethod
     def get_string_instance():
         return PrimitiveType \
             .get_character_instance() \
-            .with_attribute('length', '*')
+            .with_infinite_length()
 
     @staticmethod
     def get_type_from_string(type_str):
@@ -392,6 +420,11 @@ class FunctionType(FortranType):
 
                 if not self_arg_type.is_equivalent(call_arg, for_function_call=True):
                     return False
+
+            # in fortran i can pass any string to a function that accepts a string of any length
+            elif PrimitiveType.is_string(self_arg_type) and self_arg_type.has_infinite_length():
+                if PrimitiveType.is_string(call_arg):
+                    continue
 
 
             elif not self_arg_type.is_equivalent(call_arg):

@@ -1,7 +1,7 @@
 from parsing.ast_walk.ast_nodes.my_ats_node import CallNode, MyAstNode
 from fparser.two.Fortran2003 import Add_Operand, Mult_Operand, Parenthesis, Part_Ref, Name, Intrinsic_Function_Reference, \
     Int_Literal_Constant, Real_Literal_Constant, Char_Literal_Constant, Boz_Literal_Constant, Logical_Literal_Constant, Data_Ref, \
-    Base, Section_Subscript_List, Subscript_Triplet, Level_2_Unary_Expr, Procedure_Designator
+    Base, Section_Subscript_List, Subscript_Triplet, Level_2_Unary_Expr, Procedure_Designator, Substring_Range
 
 from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_node, findall_in_tree
 
@@ -21,11 +21,11 @@ class _Helpers:
     
     @staticmethod
     def get_slices_dimensions(fnode):
-        subscript_list = find_in_node(fnode, Section_Subscript_List)
+        list = find_in_node(fnode, Section_Subscript_List) or find_in_node(fnode, Substring_Range)
 
         sliced_dims = []
 
-        for dim, child in enumerate(subscript_list.children):
+        for dim, child in enumerate(list.children):
             if isinstance(child, Subscript_Triplet):
                 sliced_dims.append(dim)
 
@@ -44,7 +44,7 @@ class OperatorNode(MyAstNode[Add_Operand | Mult_Operand]):
         return self.fnode.children[0]
     
     def operator_sign(self):
-        return self.fnode.children[1]
+        return self.fnode.children[1].lower()
     
     def right_fnode(self):
         return self.fnode.children[2]
@@ -212,3 +212,33 @@ class StructureConstructorNode(CallNode):
     def get_argument_expression_fnodes(self):
         return self.fnode.children[1].children if self.fnode.children[1] is not None else []
   
+
+class ArraySectionNode(MyAstNode[Base]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+    def array_fnode(self):
+        return self.fnode.children[0]
+    
+    def args_fnodes(self):
+        range_list = find_in_node(self.fnode, Substring_Range)
+        return range_list.children
+    
+    def get_sliced_dimensions(self):
+        # TODO: this may return also a concrete new dimension sizes
+        return _Helpers.get_slices_dimensions(self.fnode)
+    
+class ComponentSpecNode(MyAstNode[Base]):
+    def __init__(self, fnode: Base):
+        super().__init__(fnode)
+
+        # the only known case in the code (fail if new case is found):
+        if self.component_name_fnode().tostr().lower() != 'len' or \
+            self.component_expr_fnode().tostr().lower() != 'nlat':
+            raise NotImplementedError("New case that is not handled")
+
+    def component_name_fnode(self):
+        return self.fnode.children[0]
+    
+    def component_expr_fnode(self):
+        return self.fnode.children[1]

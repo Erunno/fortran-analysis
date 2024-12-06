@@ -1,6 +1,7 @@
 import sys
 from fparser.two.Fortran2003 import Program, Module, Specification_Part, Module_Subprogram_Part, Module_Stmt
 
+
 # from parsing.definitions import FortranDefinitions
 # from parsing.module import FortranModule
 
@@ -32,7 +33,7 @@ class ExternalLibraryContext(FortranContext):
         return self._defined_external_symbols.get(symbol_name, None)
 
     def get_operator_symbols(self, op: str):
-        return None
+        return []
 
 class ModuleLocalContext(FortranContext):
     def __init__(self, definitions: FortranDefinitions):
@@ -59,19 +60,27 @@ class ModuleImportedContext():
     def get_symbol(self, symbol_name: str):
         self._fetch_modules()
 
+        if symbol_name == 'iqql':
+            pass
+
         returned_symbols = []
 
-        for module, imported_names in reversed(self._modules_with_imported_names):
+        for module, imported_names, renaming in reversed(self._modules_with_imported_names):
             
             if imported_names != ModuleImportedContext.all_symbols_imported() \
                 and (symbol_name not in imported_names):
                 continue
 
-            symbol = module.public_exports_context.get_symbol(symbol_name)
+            actual_name = renaming[symbol_name] if symbol_name in renaming else symbol_name
+            symbol = module.public_exports_context.get_symbol(actual_name)
             
             if not symbol:
                 continue
-                
+
+            if symbol_name in renaming:
+                from parsing.definitions import ImportRenamedSymbol
+                symbol = ImportRenamedSymbol(symbol_name, actual_name, self) 
+
             returned_symbols.append(symbol)
             # TODO: solve only imports ... e.g. file: mod_memutil.f90
             
@@ -84,7 +93,7 @@ class ModuleImportedContext():
         self._fetch_modules()
         returned_symbols = []
 
-        for module, imported_names in reversed(self._modules_with_imported_names):
+        for module, imported_names, renaming in reversed(self._modules_with_imported_names):
 
             # TODO: can I specify only imports for operators?
             if imported_names != ModuleImportedContext.all_symbols_imported():
@@ -104,8 +113,9 @@ class ModuleImportedContext():
         for using in self.definitions.get_using_statements():
             module = self.module_dictionary.get_module(using.key())
             imported_names = using.get_imported_names() if using.has_only_clause() else ModuleImportedContext.all_symbols_imported()
+            renaming = using.get_renaming()
 
-            self._modules_with_imported_names.append((module, imported_names))
+            self._modules_with_imported_names.append((module, imported_names, renaming))
 
 class SubroutineFunctionContext(FortranContext):
     def __init__(self, subroutine_definitions: FortranDefinitions, module_dictionary):

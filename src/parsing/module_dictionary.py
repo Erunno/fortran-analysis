@@ -47,13 +47,21 @@ class ModuleDictionary:
                 return True
             
         return False
-    
-    def _module_name_to_path(self, module_name, extension='.F90'):
+
+    _manual_module_name_fixes = {
+        'mo_simple_plumes': 'mo_simple_plumes_v1'
+    }
+
+    def _module_name_to_path(self, module_name, extensions=['.F90', '.f90']):
+
+        if module_name in ModuleDictionary._manual_module_name_fixes:
+            module_name = ModuleDictionary._manual_module_name_fixes[module_name]
+
         best_match = None
         lowest_distance = float('inf')
 
         for f_name in self.file_system:
-            f_file_no_f90_suffix = f_name[:-4] if f_name.endswith(extension) else f_name
+            f_file_no_f90_suffix = self._remove_suffixes(f_name, extensions)
 
             dist = lev(module_name, f_file_no_f90_suffix)
             if dist < lowest_distance:
@@ -62,3 +70,14 @@ class ModuleDictionary:
 
         return self.file_system[best_match]
     
+
+    def _remove_suffixes(self, module_name, suffixes):
+        if len(suffixes) == 0:
+            return module_name
+        
+        suffix, *other_suffixes = suffixes
+
+        if module_name.endswith(suffix):
+            return module_name[:-len(suffix)]
+
+        return self._remove_suffixes(module_name, other_suffixes)

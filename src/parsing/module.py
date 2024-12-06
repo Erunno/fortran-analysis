@@ -25,7 +25,7 @@ class FortranModule:
         self.program: Module = self.ast.content[0]
         self.module, self.specif, self.sub_program = self._load_parts_of_module(self.program)
         
-        assert self.module.get_name().tostr() == self.name
+        assert self.module.get_name().tostr().lower() == self.name
 
         self.definitions = FortranDefinitions(
             definition_location_symbol=self,
