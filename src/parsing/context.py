@@ -47,15 +47,26 @@ class ModuleLocalContext(FortranContext):
 class ModuleImportedContext():
     def __init__(self, definitions: FortranDefinitions, module_dictionary):
         self.definitions = definitions
-        self.modules = None
+        self._modules_with_imported_names = None
+        self.specific_symbols_imported = None
         
         self.module_dictionary = module_dictionary
+    
+    @staticmethod
+    def all_symbols_imported():
+        return '<import all>'
 
     def get_symbol(self, symbol_name: str):
         self._fetch_modules()
+
         returned_symbols = []
 
-        for module in reversed(self.modules):
+        for module, imported_names in reversed(self._modules_with_imported_names):
+            
+            if imported_names != ModuleImportedContext.all_symbols_imported() \
+                and (symbol_name not in imported_names):
+                continue
+
             symbol = module.public_exports_context.get_symbol(symbol_name)
             
             if not symbol:
@@ -65,7 +76,7 @@ class ModuleImportedContext():
             # TODO: solve only imports ... e.g. file: mod_memutil.f90
             
         if len(returned_symbols) > 1:
-            print(f"\033[93mWarning: Symbol {symbol_name} is defined in multiple modules <{[s.defined_in() for s in returned_symbols]}>\033[0m", file=sys.stderr, end=' ')
+            print(f"\033[93mWarning: Symbol {symbol_name} is defined in multiple modules <{[str(s.defined_in()) for s in returned_symbols]}>\033[0m", file=sys.stderr, end=' ')
         
         return returned_symbols[0] if returned_symbols else None
 
@@ -73,19 +84,28 @@ class ModuleImportedContext():
         self._fetch_modules()
         returned_symbols = []
 
-        for module in reversed(self.modules):
+        for module, imported_names in reversed(self._modules_with_imported_names):
+
+            # TODO: can I specify only imports for operators?
+            if imported_names != ModuleImportedContext.all_symbols_imported():
+                continue
+
             symbols = module.public_exports_context.get_operator_symbols(op)
             returned_symbols.extend(symbols)
         
         return returned_symbols
 
     def _fetch_modules(self):
-        if self.modules is not None:
+        if self._modules_with_imported_names is not None:
             return
 
-        module_names = [using.key() for using in self.definitions.get_using_statements()]
-        self.modules = [self.module_dictionary.get_module(module_name) for module_name in module_names]
+        self._modules_with_imported_names = []
 
+        for using in self.definitions.get_using_statements():
+            module = self.module_dictionary.get_module(using.key())
+            imported_names = using.get_imported_names() if using.has_only_clause() else ModuleImportedContext.all_symbols_imported()
+
+            self._modules_with_imported_names.append((module, imported_names))
 
 class SubroutineFunctionContext(FortranContext):
     def __init__(self, subroutine_definitions: FortranDefinitions, module_dictionary):

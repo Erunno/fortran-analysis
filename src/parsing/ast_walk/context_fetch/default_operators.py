@@ -1,5 +1,5 @@
 from parsing.definitions import OperatorRedefinition, SymbolDefinition
-from parsing.typing import ArrayType, FunctionArgumentForType, FunctionType, PointerType, PrimitiveType
+from parsing.typing import ArrayType, FortranType, FunctionArgumentForType, FunctionType, PointerType, PrimitiveType
 
 class DefaultOperatorFunctionSymbol:
     def __init__(self, l_type, r_type, return_type):
@@ -35,13 +35,45 @@ def _no_condition(l, r):
 def _unify_types(l, r):
     return l.get_unified_with(r)
 
+def _return_bool(l, r):
+    return PrimitiveType.get_logical_instance().with_any_kind()
+
+def _are_equivalent(l, r):
+    return l.is_equivalent(r)
+
+def _return_left(l, r):
+    return l
+
+def _return_right(l, r):
+    return r
+
+def _return_bool_array_of_same_size(l: ArrayType | PointerType, r):
+    if not isinstance(l, PointerType):
+        return PointerType(_return_bool_array_of_same_size(l.element_type, r))
+    
+    return ArrayType(PrimitiveType.get_logical_instance().with_any_kind(), l.dimensions)
+
+
 _unification_cases = [
     # (left_type, right_type, condition, return_type)
     (PrimitiveType, PrimitiveType,  _no_condition,              _unify_types),
     (ArrayType, ArrayType,          _no_condition,              _unify_types),
     (PointerType, PointerType,      _no_condition,              _unify_types),
-    (ArrayType, PrimitiveType,      _types_are_number_based,    lambda l, r: l),
-    (PointerType, PrimitiveType,    _types_are_number_based,    lambda l, r: l),
+
+    (ArrayType, PrimitiveType,      _types_are_number_based,    _return_left),
+    (PointerType, PrimitiveType,    _types_are_number_based,    _return_left),
+    
+    (PrimitiveType, ArrayType,      _types_are_number_based,    _return_right),
+    (PrimitiveType, PointerType,    _types_are_number_based,    _return_right),
+]
+
+_logical_unification_cases = [
+    # (left_type, right_type, condition, return_type)
+    (PrimitiveType, PrimitiveType,  _no_condition,              _return_bool),
+    (ArrayType, ArrayType,          _are_equivalent,            _return_left),
+    (PointerType, PointerType,      _are_equivalent,            _return_left),
+    (ArrayType, PrimitiveType,      _types_are_number_based,    _return_bool_array_of_same_size),
+    (PointerType, PrimitiveType,    _types_are_number_based,    _return_bool_array_of_same_size),
 ]
 
 class DefaultOperator(OperatorRedefinition):
@@ -78,16 +110,37 @@ class DefaultOperator(OperatorRedefinition):
     @staticmethod
     def mul():
         return DefaultOperator("*", _unification_cases)
+    
+    @staticmethod
+    def eq():
+        return DefaultOperator("==", _logical_unification_cases)
+    
+    @staticmethod
+    def or_():
+        return DefaultOperator(".or.", _logical_unification_cases)
+    
+    @staticmethod
+    def and_():
+        return DefaultOperator(".and.", _logical_unification_cases)
+    
 
 class DefaultOperatorContext:
+    
+    _instance = None
+
     @staticmethod
     def instance():
-        return DefaultOperatorContext()
+        if not DefaultOperatorContext._instance:
+            DefaultOperatorContext._instance = DefaultOperatorContext()
+        return DefaultOperatorContext._instance
     
     _ops = {
-        '+': DefaultOperator.plus(),
-        '/': DefaultOperator.div(),
-        '*': DefaultOperator.mul(),
+        '+':     DefaultOperator.plus(),
+        '/':     DefaultOperator.div(),
+        '*':     DefaultOperator.mul(),
+        '==':    DefaultOperator.eq(),
+        '.or.':  DefaultOperator.or_(),
+        '.and.': DefaultOperator.and_(),
     }
 
     def get_symbol(self, _):

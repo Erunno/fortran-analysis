@@ -1,6 +1,6 @@
 from parsing.definitions import ExternalSymbol
 from parsing.module import ExternalLibraryModule
-from parsing.typing import FunctionArgumentForType, FunctionType, PrimitiveType
+from parsing.typing import ArrayType, FunctionArgumentForType, FunctionType, PrimitiveType
 
 
 
@@ -42,6 +42,20 @@ class ExternalLibs:
             ExternalSymbol(
                 name='mpi_min',
                 type=PrimitiveType.get_integer_instance().with_any_kind()
+            ),
+            ExternalSymbol(
+                name='mpi_bcast',
+                type=FunctionType(
+                    return_type=None,
+                    # e.g. call mpi_bcast(rval, size(rval), mpi_real8, iocpu, mycomm, mpierr)
+                    arg_types=[
+                        FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(PrimitiveType.get_any_number_instance()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)]
+                )
             ),
         ]),
     }

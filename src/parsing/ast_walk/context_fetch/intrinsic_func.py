@@ -152,6 +152,26 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
         return IntrinsicFunctionsDefinition('max', type)
     
     @staticmethod
+    def get_min():
+        type = FunctionType(
+            return_type=PrimitiveType.get_any_number_instance(),
+            arg_types=[
+                FunctionArgumentForType('a', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('b', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('c', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('d', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('e', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('f', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('g', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('h', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('i', PrimitiveType.get_any_number_instance(), is_optional=True),
+                FunctionArgumentForType('j', PrimitiveType.get_any_number_instance(), is_optional=True),
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('min', type)
+
+    @staticmethod
     def get_sqrt():
         type = FunctionType(
             return_type=PrimitiveType.get_real_instance().with_any_kind(),
@@ -215,3 +235,16 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
         )
 
         return IntrinsicFunctionsDefinition('sum', type)
+
+    @staticmethod
+    def get_size():
+        type = FunctionType(
+            return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+            arg_types=[
+                FunctionArgumentForType('array', ArrayType.any_array(PrimitiveType.get_any_number_instance()), is_optional=False),
+                FunctionArgumentForType('dim', PrimitiveType.get_integer_instance().with_any_kind(), is_optional=True),
+                FunctionArgumentForType('kind', PrimitiveType.get_integer_instance().with_any_kind(), is_optional=True),
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('size', type)

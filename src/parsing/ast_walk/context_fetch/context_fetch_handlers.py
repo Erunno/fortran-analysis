@@ -33,11 +33,13 @@ class IntrinsicFunctionContextFetcher(Handler[SymbolDefinition]):
         'trim': IntrinsicFunctionsDefinition.get_trim(),
         'log': IntrinsicFunctionsDefinition.get_log(),
         'max': IntrinsicFunctionsDefinition.get_max(),
+        'min': IntrinsicFunctionsDefinition.get_min(),
         'sqrt': IntrinsicFunctionsDefinition.get_sqrt(),
         'abs': IntrinsicFunctionsDefinition.get_abs(),
         'any': IntrinsicFunctionsDefinition.get_any(),
         'all': IntrinsicFunctionsDefinition.get_all(),
         'sum': IntrinsicFunctionsDefinition.get_sum(),
+        'size': IntrinsicFunctionsDefinition.get_size(),
     }
 
     def handle(self, node: IntrinsicFunctionNode, params: Params) -> SymbolDefinition:

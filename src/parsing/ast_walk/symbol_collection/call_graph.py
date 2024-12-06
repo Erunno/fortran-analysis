@@ -24,7 +24,7 @@ class GraphCollector:
             queue.sort(key=lambda symbol: symbol.key())
 
             # for debugging purposes
-            DEBUG_FUNC_NAME = 'cumtran1'
+            DEBUG_FUNC_NAME = 'cupeman'
             self._move_function_to_front(queue, DEBUG_FUNC_NAME)
 
             current_function_symbol = queue.pop(0)

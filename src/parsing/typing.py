@@ -19,21 +19,21 @@ from fparser.two.Fortran2008.component_attr_spec_r437 import Component_Attr_Spec
 
 from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_node, findall_in_tree
 
-class FortranType:
-    pass
-
 class FortranType: 
-    def is_equivalent(self, other: FortranType) -> bool:
+    def is_equivalent(self, other: 'FortranType') -> bool:
         raise NotImplementedError("is_equivalent to be implemented by children classes")
     
-    def get_unified_with(self, other: FortranType) -> FortranType:
+    def get_unified_with(self, other: 'FortranType') -> 'FortranType':
         if not self.is_equivalent(other):
             raise ValueError(f"Cannot unify {self} with {other}")
 
         return self.clone()
 
-    def clone(self) -> FortranType:
+    def clone(self) -> 'FortranType':
         raise NotImplementedError("clone to be implemented by children classes")
+    
+    def __repr__(self):
+        return self.__str__()
 
 class VoidType(FortranType):
     def is_equivalent(self, other: FortranType) -> bool:
@@ -250,7 +250,7 @@ class ArrayType(FortranType):
         self.element_type = element_type
         self.dimensions = dimensions
 
-    def is_equivalent(self, other: FortranType) -> bool:
+    def is_equivalent(self, other: FortranType, for_function_call=False) -> bool:
         if isinstance(other, ArrayType.AnyArray) and other.element_type.is_equivalent(self.element_type):
             return True
 
@@ -263,9 +263,10 @@ class ArrayType(FortranType):
         if len(self.dimensions) != len(other.dimensions):
             return False
         
-        for self_dim, other_dim in zip(self.dimensions, other.dimensions):
-            if self_dim != other_dim:
-                return False
+        if not for_function_call:
+            for self_dim, other_dim in zip(self.dimensions, other.dimensions):
+                if self_dim != other_dim:
+                    return False
             
         return True
 
@@ -377,8 +378,23 @@ class FunctionType(FortranType):
         if len(arg_types) > len(self.arg_types):
             return False
 
-        for self_arg, other_arg in zip(self.arg_types, arg_types):
-            if not self_arg.arg_type.is_equivalent(other_arg):
+        for self_arg, call_arg in zip(self.arg_types, arg_types):
+            self_arg_type = self_arg.arg_type
+
+            if isinstance(self_arg_type, ArrayType):
+
+                # fortran function can apparently accept pointers even if the function signature does not specify it
+                # e.g. file ~\RegCM\Main\cumlib\mod_cu_em.F90 call to tlift(n,p,t,q,qs,gz,icb,nk,tvp,tp,clw,nd,nl,1)
+                if isinstance(call_arg, PointerType):
+                    if self_arg_type.is_equivalent(call_arg.element_type, for_function_call=True):
+                        # this argument is OK .. carry on
+                        continue
+
+                if not self_arg_type.is_equivalent(call_arg, for_function_call=True):
+                    return False
+
+
+            elif not self_arg_type.is_equivalent(call_arg):
                 return False
 
         return True

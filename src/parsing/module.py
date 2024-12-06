@@ -1,5 +1,6 @@
 import fparser
 from parsing.ast_walk.context_fetch.default_operators import DefaultOperatorContext
+from parsing.ast_walk.context_fetch.std_lib_functions import StdLibContext
 from parsing.find_in_tree import find_in_tree
 from parsing.context import ChainedContext, ExternalLibraryContext, FortranContext, ModuleImportedContext, ModuleLocalContext, ModulePublicExportsContext
 from parsing.definitions import ExternalSymbol, FortranDefinitions
@@ -36,10 +37,15 @@ class FortranModule:
         self.module_local_context = ModuleLocalContext(self.definitions)
         self.imported_context = ModuleImportedContext(self.definitions, self.module_dictionary)
 
-        self.module_context = ChainedContext([DefaultOperatorContext.instance(), self.imported_context, self.module_local_context])
+        self.module_context = ChainedContext([
+            DefaultOperatorContext.instance(), StdLibContext.instance(), 
+            self.imported_context, self.module_local_context])
 
     def __str__(self):
         return f"Module {self.name} - located at {self.path}"
+    
+    def __repr__(self):
+        return self.__str__()
 
     def _load_fortran_file(self, file_path: str) -> Program:
 

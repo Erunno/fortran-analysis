@@ -198,7 +198,7 @@ class ForLoopCollector(Handler[SymbolCollection]):
         return loop_control_collection.merge(execution_part_collection)
 
     def _collect_loop_control(self, node: ForLoopNode, params: Params) -> SymbolCollection:
-        return self.dispatch(node=node.do_control_fnode(), params=params)
+        return self.dispatch(node=node.do_control_fnode(), params=params) if node.do_control_fnode() else SymbolCollection()
     
     def _collect_execution_part(self, node: ForLoopNode, params: Params) -> SymbolCollection:
         collection = SymbolCollection()
@@ -208,7 +208,6 @@ class ForLoopCollector(Handler[SymbolCollection]):
             collection = collection.merge(node_collection)
 
         return collection
-
 
 class LoopControlCollector(Handler[SymbolCollection]):
     def handle(self, node: LoopControlNode, params: Params) -> SymbolCollection:

@@ -80,6 +80,7 @@ class ForLoopNode(MyAstNode[Block_Nonlabel_Do_Construct]):
         self.execution_part = fnode.children[1:-1]
 
     def do_control_fnode(self):
+        # do can have no control (see Subroutine <cup> defined in [Module mod_cu_grell])
         return find_in_tree(self.fnode, Loop_Control)
 
 class LoopControlNode(MyAstNode[Loop_Control]):
@@ -191,23 +192,17 @@ class ExitStmtNode(MyAstNode[Base]):
     def __init__(self, fnode: Base):
         super().__init__(fnode)
 
-        # TODO: waiting for more elaborated exit statement
-        if not self._first_child_is_exit_second_is_NONE_or_shallow(fnode):
-            raise NotImplementedError("This kind of exit statement is not supported yet")
-        
-    def _first_child_is_exit_second_is_NONE_or_shallow(self, fnode):
-        return len(fnode.children) == 2 and fnode.children[0] == 'EXIT' and (fnode.children[1] is None or fnode.children[1].tostr() == 'shallow')
+    def get_exit_label(self):
+        # exit can be used to escape from a loop (see Subroutine <cup> defined in [Module mod_cu_grell])
+        return self.fnode.children[1]
 
 class CycleStmtNode(MyAstNode[Base]):
     def __init__(self, fnode: Base):
         super().__init__(fnode)
-
-        # TODO: waiting for more elaborated cycle statement
-        if not self._first_child_is_cycle_second_node(fnode):
-            raise NotImplementedError("This kind of cycle statement is not supported yet")
         
-    def _first_child_is_cycle_second_node(self, fnode):
-        return len(fnode.children) == 2 and fnode.children[0] == 'CYCLE' and fnode.children[1] is None
+    def get_cycle_label(self):
+        # label can be used to cycle (see Subroutine <cup> defined in [Module mod_cu_grell])
+        return self.fnode.children[1]
 
 class OneCaseBranch:
     def __init__(self, fnode_condition):

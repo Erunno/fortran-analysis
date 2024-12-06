@@ -9,7 +9,7 @@ from fparser.two.Fortran2003 import Program, Module, Specification_Part, \
     Suffix, Component_Part, Component_Decl_List, Component_Decl, Dimension_Component_Attr_Spec, \
     Deferred_Shape_Spec_List, Procedure_Stmt, Subroutine_Body,  Generic_Spec, \
     Specific_Binding, Type_Bound_Procedure_Part, Contains_Stmt, Int_Literal_Constant, \
-    Prefix, Prefix_Spec, Extended_Intrinsic_Op
+    Prefix, Prefix_Spec, Extended_Intrinsic_Op, Only_List
     
 
 from fparser.two.Fortran2008 import Procedure_Name_List    
@@ -160,6 +160,13 @@ class UsingStatement(SymbolDefinition):
         
     def class_label(self):
         return "Using"
+    
+    def get_imported_names(self):
+        only_list = find_in_node(self.fparser_node, Only_List)
+        return [name.tostr().lower() for name in only_list.children]
+    
+    def has_only_clause(self):
+        return find_in_node(self.fparser_node, Only_List) is not None
 
 class GenericFunctionDefinition(SymbolDefinition):
     def __init__(self, init_params: SymbolInitParams):
@@ -182,6 +189,9 @@ class GenericFunctionDefinition(SymbolDefinition):
             self._definitions = self._patch_definitions(self._definitions)
 
         return self._definitions
+    
+    def is_std_function(self):
+        return False
     
     def _set_module_dictionary(self, module_dictionary):
         self.module_dictionary = module_dictionary
@@ -227,7 +237,10 @@ class GenericFunctionDefinition(SymbolDefinition):
             raise ValueError(f"Function {self} cannot be called with arguments {call_args_types}")
 
         return self
-
+    
+    def _unpack_pointers_to_arrays(self, call_args_types):
+        return [arg.element_type if isinstance(arg, PointerType) else arg for arg in call_args_types]
+    
 class Subroutine(GenericFunctionDefinition):
     def __init__(self, init_params: SymbolInitParams):
         super().__init__(init_params)
@@ -392,7 +405,7 @@ class Interface(SymbolDefinition):
                 possible_functions.append(function)
     
         if len(possible_functions) > 1:
-            raise ValueError(f"Interface {self} does not have a function that can be called with arguments {call_args_types}")
+            raise ValueError(f"Interface {self} have more functions that can be called with {call_args_types} namely {possible_functions}")
 
         if len(possible_functions) == 0:
             raise ValueError(f"Interface {self} does not have a function that can be called with arguments {call_args_types}")
@@ -894,63 +907,63 @@ class FortranDefinitions:
                 
                 self.forward_imports.append(forward_import)
 
-    def get_local_symbols(self):
+    def get_local_symbols(self) -> list[SymbolDefinition]:
         return self.variables + self.subroutines + self.functions + self.types + self.interfaces
     
-    def get_all_symbols(self):
+    def get_all_symbols(self) -> list[SymbolDefinition]:
         return self.get_local_symbols() + self.forward_imports
     
-    def get_interfaces(self):
+    def get_interfaces(self) -> list[Interface]:
         return self.interfaces
 
-    def get_variables(self):
+    def get_variables(self) -> list[VariableDeclaration]:
         return self.variables
     
-    def get_subroutines(self):
+    def get_subroutines(self) -> list[Subroutine]:
         return self.subroutines
 
-    def get_functions(self):
+    def get_functions(self) -> list[Function]:
         return self.functions
 
-    def get_types(self):
+    def get_types(self) -> list[Type]:
         return self.types
 
-    def get_includes(self):
+    def get_includes(self) -> list[Include]:
         return self.includes
     
-    def get_using_statements(self):
+    def get_using_statements(self) -> list[UsingStatement]:
         return self.using_statements
     
-    def get_forward_imports(self):
+    def get_forward_imports(self) -> list[ProxySymbolDefinition]:
         return self.forward_imports
 
-    def get_public_operator_redefinitions(self):
+    def get_public_operator_redefinitions(self) -> list[OperatorRedefinition]:
         return [op for op in self.operator_redefinitions if op.is_public()]
     
-    def get_all_operator_redefinitions(self):
+    def get_all_operator_redefinitions(self) -> list[OperatorRedefinition]:
         return [s for s in self.operator_redefinitions]
 
-    def find_public_operators(self, op_str: str):
+    def find_public_operators(self, op_str: str) -> list[OperatorRedefinition]:
         op_key = OperatorRedefinition.make_key(op_str)
         return [op for op in self.get_public_operator_redefinitions() if op.key() == op_key]
 
-    def find_all_operators(self, op_str: str):
+    def find_all_operators(self, op_str: str) -> list[OperatorRedefinition]:
         op_key = OperatorRedefinition.make_key(op_str)
         return [op for op in self.get_all_operator_redefinitions() if op.key() == op_key]
 
-    def get_public_symbols(self):
+    def get_public_symbols(self) -> list[SymbolDefinition]:
         return [symbol for symbol in self.get_all_symbols() if symbol.is_public()]
     
-    def get_private_symbols(self):
+    def get_private_symbols(self) -> list[SymbolDefinition]:
         return [symbol for symbol in self.get_all_symbols() if not symbol.is_public()]
 
-    def find_public_symbol(self, key):
+    def find_public_symbol(self, key) -> SymbolDefinition:
         return next((symbol for symbol in self.get_public_symbols() if symbol.key() == key), None)
 
-    def find_local_symbol(self, key):
+    def find_local_symbol(self, key) -> SymbolDefinition:
         return next((symbol for symbol in self.get_local_symbols() if symbol.key() == key), None)
     
-    def find_symbol(self, key):
+    def find_symbol(self, key) -> SymbolDefinition:
         return next((symbol for symbol in self.get_all_symbols() if symbol.key() == key), None)
     
     def _set_public_symbols(self):
