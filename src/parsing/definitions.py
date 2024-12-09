@@ -74,19 +74,8 @@ class SymbolDefinition:
     def is_module(self):
         return False
     
-    def definition_key(self):
-        full_key = self.key()
-
-        definition_symbol = self.defined_in()
-
-        while True:
-            full_key = f"{full_key}::{definition_symbol.key()}"
-            definition_symbol = definition_symbol.defined_in()
-
-            if definition_symbol.is_module():
-                break
-
-        return full_key
+    def full_unique_key(self):
+        return f'{self.class_label()} {self.key()}::{self.defined_in().full_unique_key()}'
 
 class ModuleDefinition(SymbolDefinition):
     def __init__(self, init_params: SymbolInitParams):

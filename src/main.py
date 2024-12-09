@@ -1,3 +1,4 @@
+import json
 from parsing.ast_walk.run_translation import run_translation
 from parsing.ast_walk.symbol_collection.call_graph import GraphCollector
 from parsing.functions_analyzer import FunctionAnalyzer
@@ -82,9 +83,17 @@ modules = [
 
 collector = GraphCollector(module_dict=d)
 
-all_symbols = collector.collect_all_symbols('mod_moloch', 'moloch')
+graph, all_symbols = collector.collect_graph('mod_moloch', 'moloch')
 
-print('refereed symbols:')
+# print('refereed symbols:')
 
-for symbol in all_symbols.symbols:
-    print(symbol)
+# for symbol in all_symbols.symbols:
+#     print(symbol)
+
+json_data = graph.get_json_dict_graph()
+json_str = json.dumps(json_data, indent=4)
+
+output_path = 'C:\\Users\\matya\\source\\repos\\fortran-parser\\src\\graph-vis\\data.json'
+with open(output_path, 'w') as json_file:
+    json_file.write(json_str)
+

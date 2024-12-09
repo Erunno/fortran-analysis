@@ -1,4 +1,6 @@
+import json
 from parsing.ast_walk.dispatcher import Params
+from parsing.ast_walk.symbol_collection.graph import CallGraph
 from parsing.ast_walk.symbol_collection.symbol_collection import SymbolCollection
 from parsing.definitions import GenericFunctionDefinition
 from parsing.ast_walk.symbol_collection.symbol_collection_dispatcher import collectors_dispatcher
@@ -6,11 +8,8 @@ from parsing.ast_walk.symbol_collection.symbol_collection_dispatcher import coll
 class GraphCollector:
     def __init__(self, module_dict):
         self.module_dict = module_dict
-
-    def collect_call_graph(self, module_name, function_name):
-        pass
         
-    def collect_all_symbols(self, module_name, function_name):
+    def collect_graph(self, module_name, function_name):
 
         start_function_symbol = self._get_function_symbol(module_name, function_name)
         
@@ -18,10 +17,16 @@ class GraphCollector:
         all_symbols = SymbolCollection()
 
         visited_functions = set()
-        errors = []
-
+        graph = CallGraph()
+        graph.set_root_function(start_function_symbol)
+        
+        iter_count = 1
 
         while queue:
+            # if iter_count == 0:
+            #     break
+            # iter_count -= 1
+
             queue.sort(key=lambda symbol: symbol.key())
 
             # for debugging purposes
@@ -32,6 +37,8 @@ class GraphCollector:
             
             print('Collecting function: ', current_function_symbol)
             
+            print(f'full key: {current_function_symbol.full_unique_key()}')
+
             try:
                 collected_symbols = self._collect_symbols(current_function_symbol)
                 called_functions = collected_symbols.get_function_symbols()
@@ -39,6 +46,10 @@ class GraphCollector:
 
                 queue = queue + [f for f in called_functions if f not in visited_functions]
                 visited_functions.add(current_function_symbol)
+
+                graph.add_many_calls(
+                    caller=current_function_symbol, 
+                    callees=called_functions)
         
                 print(f'Collected {collected_symbols.count()} symbols')
                 print(f' --> Called functions: {len(called_functions)}')
@@ -46,11 +57,11 @@ class GraphCollector:
                 print(f' --> Visited functions / current total: {len(visited_functions)}/{len(queue) + len(visited_functions)}')    
             except Exception as e:
                 print(f'\033[91mError collecting symbols for {current_function_symbol}\033[0m')
-                errors.append(e)
+                graph.set_erroneous_node(current_function_symbol, e)
 
             print()
 
-        return all_symbols
+        return graph, all_symbols
 
     def _get_function_symbol(self, module_name, function_name):
         module = self.module_dict.get_module(module_name)

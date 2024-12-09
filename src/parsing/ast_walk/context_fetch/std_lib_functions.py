@@ -20,6 +20,12 @@ class StdLibHolderModule:
     
     def is_module(self):
         return True
+    
+    def full_unique_key(self):
+        return self.key()
+    
+    def get_context(self):
+        return StdLibContext.instance()
 
 class StdLibFunctionsDefinition(GenericFunctionDefinition):
     def __init__(self, name, function_type: FunctionType):

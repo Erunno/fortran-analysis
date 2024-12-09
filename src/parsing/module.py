@@ -75,6 +75,12 @@ class FortranModule:
     
     def get_context(self):
         return self.module_context
+    
+    def full_unique_key(self):
+        return self.key()
+    
+    def file_path(self):
+        return self.path
 
 class ExternalLibraryModule(FortranModule):
     def __init__(self, name, defined_symbols: list[ExternalSymbol]):
@@ -85,6 +91,8 @@ class ExternalLibraryModule(FortranModule):
 
         self.public_exports_context = ExternalLibraryContext(defined_symbols)
         self.module_context = ExternalLibraryContext(defined_symbols)
+
+        self.path = '<external/lib/path>'
 
     def get_context(self):
         return self.module_context
