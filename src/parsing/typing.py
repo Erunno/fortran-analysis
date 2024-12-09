@@ -35,6 +35,25 @@ class FortranType:
     def __repr__(self):
         return self.__str__()
 
+class AnyType(FortranType):
+    
+    def is_equivalent(self, other: FortranType) -> bool:
+        return True
+
+    def get_unified_with(self, other: FortranType) -> FortranType:
+        return other.clone()
+    
+    _instance = None
+    @staticmethod
+    def instance():
+        if not hasattr(AnyType, "_instance"):
+            AnyType._instance = AnyType()
+        return AnyType._instance
+
+    def __str__(self):
+        return "<any>"
+
+
 class VoidType(FortranType):
     def is_equivalent(self, other: FortranType) -> bool:
         return isinstance(other, VoidType)
@@ -63,6 +82,9 @@ class PrimitiveType(FortranType):
         self.attributes = {}
 
     def is_equivalent(self, other: FortranType, with_number_cast=False) -> bool:
+        if isinstance(other, AnyType):
+            return True
+        
         if not isinstance(other, PrimitiveType):
             return False
         
@@ -123,6 +145,9 @@ class PrimitiveType(FortranType):
         return str(int(len1) + int(len2))
 
     def get_unified_with(self, other_type) -> FortranType:
+        if isinstance(other_type, AnyType):
+            return self.clone()
+        
         if not isinstance(other_type, PrimitiveType):
             raise ValueError("Cannot unify primitive type with non-primitive type")
         
@@ -260,9 +285,15 @@ class ArrayType(FortranType):
             self.element_type = element_type
 
         def is_equivalent(self, other: FortranType) -> bool:
+            if isinstance(other, AnyType):
+                return True
+
             return isinstance(other, ArrayType.AnyArray) and other.element_type.is_equivalent(self.element_type)
 
         def get_unified_with(self, other: FortranType) -> FortranType:
+            if isinstance(other, AnyType):
+                return self.clone()
+            
             if not isinstance(other, ArrayType) or not other.element_type.is_equivalent(self.element_type):
                 raise ValueError("Cannot unify anyArray with non-array type")
             
@@ -279,6 +310,9 @@ class ArrayType(FortranType):
         self.dimensions = dimensions
 
     def is_equivalent(self, other: FortranType, for_function_call=False) -> bool:
+        if isinstance(other, AnyType):
+            return True
+        
         if isinstance(other, ArrayType.AnyArray) and other.element_type.is_equivalent(self.element_type):
             return True
 
@@ -348,6 +382,9 @@ class StructType(FortranType):
         self.original_variable_defined_in_module = variable_defined_in_module
 
     def is_equivalent(self, other: FortranType) -> bool:
+        if isinstance(other, AnyType):
+                return True
+
         return isinstance(other, StructType) and \
             self.type_name == other.type_name
 
@@ -384,6 +421,9 @@ class FunctionType(FortranType):
 
 
     def is_equivalent(self, other: FortranType) -> bool:
+        if isinstance(other, AnyType):
+            return True
+
         if not isinstance(other, FunctionType):
             return False
         if not self.return_type.is_equivalent(other.return_type):
@@ -447,6 +487,9 @@ class PointerType(FortranType):
         self.element_type = element_type
 
     def is_equivalent(self, other: FortranType) -> bool:
+        if isinstance(other, AnyType):
+            return True
+        
         if not isinstance(other, PointerType):
             return False
         return self.element_type.is_equivalent(other.element_type)

@@ -18,6 +18,7 @@ class GraphCollector:
         all_symbols = SymbolCollection()
 
         visited_functions = set()
+        errors = []
 
 
         while queue:
@@ -31,17 +32,21 @@ class GraphCollector:
             
             print('Collecting function: ', current_function_symbol)
             
-            collected_symbols = self._collect_symbols(current_function_symbol)
-            called_functions = collected_symbols.get_function_symbols()
-            all_symbols = all_symbols.merge(collected_symbols)
+            try:
+                collected_symbols = self._collect_symbols(current_function_symbol)
+                called_functions = collected_symbols.get_function_symbols()
+                all_symbols = all_symbols.merge(collected_symbols)
 
-            queue = queue + [f for f in called_functions if f not in visited_functions]
-            visited_functions.add(current_function_symbol)
-    
-            print(f'Collected {collected_symbols.count()} symbols')
-            print(f' --> Called functions: {len(called_functions)}')
-            print(f' --> All symbols: {all_symbols.count()}')
-            print(f' --> Visited functions / current total: {len(visited_functions)}/{len(queue) + len(visited_functions)}')    
+                queue = queue + [f for f in called_functions if f not in visited_functions]
+                visited_functions.add(current_function_symbol)
+        
+                print(f'Collected {collected_symbols.count()} symbols')
+                print(f' --> Called functions: {len(called_functions)}')
+                print(f' --> All symbols: {all_symbols.count()}')
+                print(f' --> Visited functions / current total: {len(visited_functions)}/{len(queue) + len(visited_functions)}')    
+            except Exception as e:
+                print(f'\033[91mError collecting symbols for {current_function_symbol}\033[0m')
+                errors.append(e)
 
             print()
 

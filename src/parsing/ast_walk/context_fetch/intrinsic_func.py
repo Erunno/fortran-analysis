@@ -1,6 +1,6 @@
 from parsing.definitions import GenericFunctionDefinition, SymbolInitParams
 from parsing.module import FortranModule
-from parsing.typing import ArrayType, FortranType, FunctionArgumentForType, FunctionType, PrimitiveType
+from parsing.typing import AnyType, ArrayType, FortranType, FunctionArgumentForType, FunctionType, PrimitiveType
 
 
 class IntrinsicsHolderModule(FortranModule):
@@ -275,3 +275,15 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
         )
 
         return IntrinsicFunctionsDefinition('max0', type)
+    
+    @staticmethod
+    def get_associated():
+        type = FunctionType(
+            return_type=PrimitiveType.get_logical_instance(),
+            arg_types=[
+                FunctionArgumentForType('pointer', AnyType.instance(), is_optional=False),
+                FunctionArgumentForType('target', AnyType.instance(), is_optional=False),
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('associated', type)

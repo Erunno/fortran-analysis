@@ -42,6 +42,7 @@ class IntrinsicFunctionContextFetcher(Handler[SymbolDefinition]):
         'size': IntrinsicFunctionsDefinition.get_size(),
         'sign': IntrinsicFunctionsDefinition.get_sign(),
         'max0': IntrinsicFunctionsDefinition.get_max0(),
+        'associated': IntrinsicFunctionsDefinition.get_associated(),
     }
 
     def handle(self, node: IntrinsicFunctionNode, params: Params) -> SymbolDefinition:
