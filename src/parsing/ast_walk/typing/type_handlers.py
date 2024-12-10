@@ -101,6 +101,10 @@ class ReferenceTyper(Handler[FortranType]):
 class NameTyper(Handler[FortranType]):
     def handle(self, node: NameNode, params: Params):
         symbol = params.context.get_symbol(node.ref_name)
+
+        if not symbol:
+            raise ValueError(f"Symbol {node.ref_name} not found in context")
+
         return symbol.get_type()
 
 class IntrinsicFunctionTyper(Handler[FortranType]):

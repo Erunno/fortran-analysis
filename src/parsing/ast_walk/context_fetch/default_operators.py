@@ -15,7 +15,7 @@ class DefaultOperatorFunctionSymbol:
                 FunctionArgumentForType('r_operand', self._r_type, is_optional=False)]
         )
     
-    def is_default(self):
+    def is_default_operator_function(self):
         return True
 
 def _types_are_number_based(l_type, r_type):
@@ -107,7 +107,7 @@ class DefaultOperator(OperatorRedefinition):
             if isinstance(left_type, l_type) and isinstance(right_type, r_type) and condition(left_type, right_type):
                 return DefaultOperatorFunctionSymbol(left_type, right_type, return_type(left_type, right_type))
 
-    def is_default(self):
+    def is_default_operator_function(self):
         return True
 
     @staticmethod

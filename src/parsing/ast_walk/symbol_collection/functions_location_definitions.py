@@ -1,5 +1,6 @@
 import re
 from parsing.ast_walk.symbol_collection.graph import GraphNode
+from parsing.definitions import ExternalSymbol
 
 class FileLocationRepository:
     
@@ -10,7 +11,7 @@ class FileLocationRepository:
     def get_line_of_definition(self, node: GraphNode):
 
         file_location = node.get_path()
-        if not file_location:
+        if not file_location or file_location == ExternalSymbol.EXTERNAL_SYMBOL_PATH:
             return None
 
         function_name = node.short_name()

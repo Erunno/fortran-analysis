@@ -1,5 +1,5 @@
 
-from parsing.ast_walk.ast_nodes.expression_ast import ArraySectionNode, BoundsSpecListNode, BoundsSpecNode, ComponentSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, PointerAssignmentNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
+from parsing.ast_walk.ast_nodes.expression_ast import ArraySectionNode, BoundsSpecListNode, BoundsSpecNode, ComponentSpecNode, DataPointerObjectNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, PointerAssignmentNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AllocOptNode, AllocateNode, AssignmentNode, CallNode, CaseConstructNode, ContinueStmtNode, CycleStmtNode, DeallocateNode, ExitStmtNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, NullifyNode, ProcedureDesignatorNode, ReturnStmtNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Dispatcher
 from parsing.ast_walk.symbol_collection.symbol_collection import SymbolCollection
@@ -30,6 +30,7 @@ collectors_dispatcher.register(ParenthesisCollector).for_node(ParenthesisNode)
 collectors_dispatcher.register(NameCollector).for_node(NameNode)
 collectors_dispatcher.register(IntrinsicFunctionCollector).for_node(IntrinsicFunctionNode)
 collectors_dispatcher.register(DataRefCollector).for_node(DataRefNode)
+collectors_dispatcher.register(DataRefCollector).for_node(DataPointerObjectNode)
 collectors_dispatcher.register(PartRefCollector).for_node(PartRefNode)
 collectors_dispatcher.register(ProcedureDesignatorCollector).for_node(ProcedureDesignatorNode)
 collectors_dispatcher.register(SubscriptTripleCollector).for_node(SubscriptTripletNode)

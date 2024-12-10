@@ -89,11 +89,11 @@ class LoopControlNode(MyAstNode[Loop_Control]):
     def __init__(self, fnode: Base):
         super().__init__(fnode)
 
-    def forall_header_fnode(self):
-        return find_in_tree(self.fnode, Forall_Header) 
+    def loop_header(self):
+        return self.fnode.children[0] 
 
     def do_siple_do_fnodes(self):
-        return self.fnode.children[1]
+        return self.fnode.children[1] if self.fnode.children[1] else (None, None)
 
 class ForAllHeaderNode(MyAstNode[Forall_Header]):
     def __init__(self, fnode: Base):

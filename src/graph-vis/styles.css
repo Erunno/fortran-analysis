@@ -5,11 +5,36 @@ body {
     overflow: hidden;
 }
 
-svg {
-    width: 100vw;
+.container {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
     height: 100vh;
+    width: 100vw;
+}
+
+svg {
     padding: 0;
     margin: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.info {
+    background-color: #f8f8f8;
+}
+
+.info > * {
+    margin-left: 10px;
+    margin-top: 5px;
+}
+
+.info > h3 {
+    margin-top: 30px;
+}
+
+.info > h2 {
+    margin-top: 30px;
+    margin-bottom: 30px;
 }
 
 .link {
@@ -32,12 +57,25 @@ svg {
     stroke-width: 1.5px;
 }
 
+.node circle[is-external-function="true"]{
+    fill: #88f;
+    stroke: #55f;
+}
+
+.node circle[is-std-function="true"]{
+    fill: #8f8;
+    stroke: #5f5;
+}
+
 .node circle[status="error"]{
     fill: #f88;
     stroke: #f00;
-    stroke-width: 1.5px;
 }
 
 .node text {
     font: 10px sans-serif;
+}
+
+g.node {
+    cursor: pointer;
 }

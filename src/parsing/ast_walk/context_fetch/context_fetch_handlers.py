@@ -1,6 +1,6 @@
 
 
-from parsing.ast_walk.ast_nodes.expression_ast import _Helpers, DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
+from parsing.ast_walk.ast_nodes.expression_ast import _Helpers, DataPointerObjectNode, DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
 from parsing.ast_walk.ast_nodes.my_ats_node import ProcedureDesignatorNode
 from parsing.ast_walk.context_fetch.intrinsic_func import IntrinsicFunctionsDefinition
 from parsing.ast_walk.dispatcher import Handler, Params
@@ -43,13 +43,17 @@ class IntrinsicFunctionContextFetcher(Handler[SymbolDefinition]):
         'sign': IntrinsicFunctionsDefinition.get_sign(),
         'max0': IntrinsicFunctionsDefinition.get_max0(),
         'associated': IntrinsicFunctionsDefinition.get_associated(),
+        'sin': IntrinsicFunctionsDefinition.get_sin(),
+        'cos': IntrinsicFunctionsDefinition.get_cos(),
+        'aint': IntrinsicFunctionsDefinition.get_aint(),
+        'null': IntrinsicFunctionsDefinition.get_null(),
     }
 
     def handle(self, node: IntrinsicFunctionNode, params: Params) -> SymbolDefinition:
         return self.intrinsic_map[node.function_name]
 
 class StructReferenceSymbolFetcher(Handler[SymbolDefinition]):
-    def handle(self, node: DataRefNode, params: Params):
+    def handle(self, node: DataRefNode | DataPointerObjectNode, params: Params):
         left_symbol = self.dispatch(node=node.get_left_node(), params=params)
         left_symbol_type: StructType = left_symbol.get_type()
 

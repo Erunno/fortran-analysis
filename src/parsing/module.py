@@ -92,7 +92,7 @@ class ExternalLibraryModule(FortranModule):
         self.public_exports_context = ExternalLibraryContext(defined_symbols)
         self.module_context = ExternalLibraryContext(defined_symbols)
 
-        self.path = '<external/lib/path>'
+        self.path = ExternalSymbol.EXTERNAL_SYMBOL_PATH
 
     def get_context(self):
         return self.module_context

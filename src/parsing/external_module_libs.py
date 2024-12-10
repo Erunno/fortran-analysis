@@ -1,6 +1,6 @@
 from parsing.definitions import ExternalSymbol
 from parsing.module import ExternalLibraryModule
-from parsing.typing import ArrayType, FunctionArgumentForType, FunctionType, PrimitiveType
+from parsing.typing import AnyType, ArrayType, FunctionArgumentForType, FunctionType, PrimitiveType
 
 
 
@@ -125,6 +125,10 @@ class ExternalLibs:
                 type=PrimitiveType.get_integer_instance().with_any_kind()
             ),
             ExternalSymbol(
+                name='mpi_logical',
+                type=PrimitiveType.get_integer_instance().with_any_kind()
+            ),
+            ExternalSymbol(
                 name='mpi_real8',
                 type=PrimitiveType.get_integer_instance().with_any_kind()
             ),
@@ -151,6 +155,93 @@ class ExternalLibs:
                     # e.g. call mpi_bcast(rval, size(rval), mpi_real8, iocpu, mycomm, mpierr)
                     arg_types=[
                         FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(PrimitiveType.get_any_number_instance()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)]
+                )
+            ),
+            ExternalSymbol(
+                name='mpi_request_null',
+                # can be assigned to arrays ¯\_(ツ)_/¯ (e.g. see `req = mpi_request_null` in RegCM/Main/mpplib/mod_mppparam.F90)
+                type=AnyType.instance()
+            ),
+            ExternalSymbol(
+                name='mpi_proc_null',
+                type=PrimitiveType.get_integer_instance().with_any_kind()
+            ),
+            ExternalSymbol(
+                name='mpi_waitall',
+                type=FunctionType(
+                    return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+                    arg_types=[
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(AnyType.instance()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(AnyType.instance()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)]
+                )
+            ),
+            ExternalSymbol(
+                name='mpi_statuses_ignore',
+                type=PrimitiveType.get_integer_instance().with_any_kind()
+            ),
+            # call mpi_sendrecv(rv1,isize,mpi_real8,icpu1,itag, &
+                    #   rv2,isize,mpi_real8,icpu2,itag, &
+                    #   cartesian_communicator,mpi_status_ignore,mpierr)
+            ExternalSymbol(
+                name='mpi_sendrecv',
+                type=FunctionType(
+                    return_type=None,
+                    arg_types=[
+                        FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(PrimitiveType.get_any_number_instance()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        
+                        FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(PrimitiveType.get_any_number_instance()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(PrimitiveType.get_integer_instance().with_any_kind()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),]
+                )
+            ),
+            ExternalSymbol(
+                name='mpi_status_ignore',
+                type=ArrayType.any_array(PrimitiveType.get_integer_instance().with_any_kind())
+            ),
+            ExternalSymbol(
+                name='mpi_statuses_ignore',
+                type=ArrayType.any_array(PrimitiveType.get_integer_instance().with_any_kind())
+            ),
+            ExternalSymbol(
+                name='mpi_irecv',
+                type=FunctionType(
+                    return_type=None,
+                    arg_types=[
+                        FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(PrimitiveType.get_logical_instance()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False)]
+                )
+            ),
+            ExternalSymbol(
+                name='mpi_isend',
+                type=FunctionType(
+                    return_type=None,
+                    arg_types=[
+                        FunctionArgumentForType(name='<empty>', arg_type=ArrayType.any_array(PrimitiveType.get_any_number_instance()), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
+                        FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
                         FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
                         FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),
                         FunctionArgumentForType(name='<empty>', arg_type=PrimitiveType.get_integer_instance().with_any_kind(), is_optional=False),

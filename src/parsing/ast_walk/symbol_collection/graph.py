@@ -1,4 +1,4 @@
-from parsing.definitions import GenericFunctionDefinition
+from parsing.definitions import ExternalSymbol, GenericFunctionDefinition
 
 _reg_cm_base_path = 'https://github.com/ICTP/RegCM/blob/master/'
 
@@ -9,7 +9,8 @@ class GraphNode:
         self._function_symbol = function_symbol
         self._called_functions: list['GraphNode'] = []
 
-        self._error = None
+        self._error : Exception = None
+        self._traceback = None
         self._parent = None
 
         from parsing.ast_walk.symbol_collection.functions_location_definitions import FileLocationRepository
@@ -27,8 +28,9 @@ class GraphNode:
     def short_name(self):
         return self._function_symbol.key()
     
-    def set_error(self, error):
+    def set_error(self, error, traceback=None):
         self._error = error
+        self._traceback = traceback
 
     def all_called_functions(self):
         return self._called_functions
@@ -52,6 +54,11 @@ class GraphNode:
 
         metadata = {
             'error': str(self._error) if self._error else None,
+            'traceback': str(self._error) if self._traceback else None,
+            'is_external_function': isinstance(self._function_symbol, ExternalSymbol),
+            'is_std_function': self._function_symbol.is_std_function(),
+            'line_count': self.get_line_count(),
+            
         }
 
         url = self.get_url()
@@ -80,6 +87,14 @@ class GraphNode:
         tail = path.split('RegCM/')[-1]
 
         return _reg_cm_base_path + tail
+    
+    def get_line_count(self):
+        if isinstance(self._function_symbol, GenericFunctionDefinition) and \
+            not self._function_symbol.is_std_function():
+            return 0
+        
+        str_code = str(self._function_symbol.fparser_node).lower().split('contains')[0]
+        return len(str_code.split('\n'))
 
 class CallGraph:
     def __init__(self):
@@ -100,9 +115,9 @@ class CallGraph:
         for callee in callees:
             self.add_call(caller, callee)
 
-    def set_erroneous_node(self, node, error):
+    def set_erroneous_node(self, node, error, traceback=None):
         node = self._get_or_create_node(node)
-        node.set_error(error)
+        node.set_error(error, traceback)
 
     def _get_or_create_node(self, symbol: GenericFunctionDefinition) -> GraphNode:
         key = symbol.full_unique_key()

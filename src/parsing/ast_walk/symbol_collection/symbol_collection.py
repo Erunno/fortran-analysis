@@ -1,4 +1,5 @@
-from parsing.definitions import GenericFunctionDefinition
+from parsing.definitions import ExternalSymbol, GenericFunctionDefinition
+from parsing.typing import FunctionType
 
 
 class SymbolCollection:
@@ -37,7 +38,19 @@ class SymbolCollection:
         return new_col
 
     def get_function_symbols(self) -> set[GenericFunctionDefinition]:
-        return {symbol for symbol in self.symbols if isinstance(symbol, GenericFunctionDefinition)}
+        return {symbol for symbol in self.symbols \
+                if isinstance(symbol, GenericFunctionDefinition) and \
+                    not symbol.is_std_function()}
+
+    def get_external_functions(self) -> set[ExternalSymbol]:
+        return {symbol for symbol in self.symbols
+                if isinstance(symbol, ExternalSymbol) and \
+                    isinstance(symbol.get_type(), FunctionType)}
+    
+    def get_std_functions(self) -> set[GenericFunctionDefinition]:
+        return {symbol for symbol in self.symbols
+                if isinstance(symbol, GenericFunctionDefinition) and \
+                    symbol.is_std_function()}
 
     def count(self) -> int:
         return len(self.symbols)

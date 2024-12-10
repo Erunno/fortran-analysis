@@ -1,4 +1,4 @@
-from parsing.ast_walk.ast_nodes.expression_ast import ArraySectionNode, BoundsSpecListNode, BoundsSpecNode, ComponentSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PointerAssignmentNode, ReferenceNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
+from parsing.ast_walk.ast_nodes.expression_ast import ArraySectionNode, BoundsSpecListNode, BoundsSpecNode, ComponentSpecNode, DataPointerObjectNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PointerAssignmentNode, ReferenceNode, StructureConstructorNode, SubscriptTripletNode, UnaryOperatorNode
 from parsing.ast_walk.ast_nodes.expression_ast import DataRefNode, IntrinsicFunctionNode, LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AllocOptNode, AllocateNode, AssignmentNode, CallNode, CaseConstructNode, CycleStmtNode, DeallocateNode, ExitStmtNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, IfBlockNode, LoopControlNode, MyAstNode, NullifyNode, ProcedureDesignatorNode, ReturnStmtNode, SubroutineDefinitionNode, WriteStdoutNode
 from parsing.ast_walk.dispatcher import Dispatcher, Handler, Params
@@ -51,6 +51,9 @@ class CallSubroutineCollector(Handler[SymbolCollection]):
 
         call_identifier_symbol = symbol_fetch_dispatcher.dispatch(
             node=node.get_call_identifier_fnode(), params=params)
+        
+        if not call_identifier_symbol:
+            raise ValueError(f"Function {node.called_function_name} not found")
         
         function_symbol = call_identifier_symbol.get_actual_function_symbol(args_types)
         
@@ -113,7 +116,7 @@ class OperatorCollector(Handler[SymbolCollection]):
 
         operator_function: OperatorRedefinition = self._find_operator_function(node.operator_sign(), l_type, r_type, params)
 
-        if operator_function and not operator_function.is_default():
+        if operator_function and not operator_function.is_default_operator_function():
             return operator_function
         
     def _find_operator_function(self, op_sign, l_type: FortranType, r_type: FortranType, params: Params) -> SymbolCollection:
@@ -156,6 +159,10 @@ class ParenthesisCollector(Handler[SymbolCollection]):
 class NameCollector(Handler[SymbolCollection]):
     def handle(self, node: NameNode, params: Params) -> SymbolCollection:
         symbol = symbol_fetch_dispatcher.dispatch(node=node, params=params)
+
+        if not symbol:
+            raise ValueError(f"Symbol {node.ref_name} not found")
+
         return SymbolCollection().with_symbol(symbol)
 
 class IntrinsicFunctionCollector(Handler[SymbolCollection]):
@@ -164,7 +171,7 @@ class IntrinsicFunctionCollector(Handler[SymbolCollection]):
         return SymbolCollection.merge_many(args_collections).with_intrinsic_function(node.function_name)
 
 class DataRefCollector(Handler[SymbolCollection]):
-    def handle(self, node: DataRefNode, params: Params) -> SymbolCollection:
+    def handle(self, node: DataRefNode | DataPointerObjectNode, params: Params) -> SymbolCollection:
         left_symbol = symbol_fetch_dispatcher.dispatch(node=node.get_left_node(), params=params)
         property_name = identifier_retrieve_dispatcher.dispatch(node=node.last_fnode, params=params)
         left_symbol_type: StructType = _Helpers.unpack_arr_ptr_type(left_symbol.get_type())
@@ -211,14 +218,14 @@ class ForLoopCollector(Handler[SymbolCollection]):
 
 class LoopControlCollector(Handler[SymbolCollection]):
     def handle(self, node: LoopControlNode, params: Params) -> SymbolCollection:
-        header = node.forall_header_fnode()
+        header = node.loop_header()
         if header:
             return self.dispatch(node=header, params=params)
         
         control, from_to_step = node.do_siple_do_fnodes()
 
-        control_collection = self.dispatch(node=control, params=params)
-        from_to_step_collections = [self.dispatch(node=n, params=params) for n in from_to_step]
+        control_collection = self.dispatch(node=control, params=params) if control else SymbolCollection()
+        from_to_step_collections = [self.dispatch(node=n, params=params) for n in from_to_step] if from_to_step else []
         
         return SymbolCollection.merge_many([control_collection] + from_to_step_collections)
 

@@ -5,7 +5,7 @@ from fparser.two.Fortran2003 import Base, Procedure_Stmt, Assignment_Stmt, Subro
                                     Forall_Header, Forall_Triplet_Spec, Level_2_Unary_Expr, Nullify_Stmt, Return_Stmt, Pointer_Assignment_Stmt, \
                                     Bounds_Spec_List, Bounds_Spec, Equiv_Operand, Function_Reference, And_Operand, Structure_Constructor, Exit_Stmt, \
                                     Cycle_Stmt, Subroutine_Body, Case_Construct, Continue_Stmt, Array_Section, Level_3_Expr, Component_Spec, \
-                                    Deallocate_Stmt
+                                    Deallocate_Stmt, Data_Pointer_Object
 
 from fparser.two.Fortran2008.block_nonlabel_do_construct_r814_2 import Block_Nonlabel_Do_Construct
 from fparser.two.Fortran2008.if_stmt_r837 import If_Stmt as Fortran8_If_Stmt
@@ -13,7 +13,7 @@ from fparser.two.Fortran2008.loop_control_r818 import Loop_Control
 from fparser.two.Fortran2008.allocate_stmt_r626 import Allocate_Stmt
 from fparser.two.Fortran2008.alloc_opt_r627 import Alloc_Opt
 
-from parsing.ast_walk.ast_nodes.expression_ast import BoundsSpecListNode, BoundsSpecNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, \
+from parsing.ast_walk.ast_nodes.expression_ast import BoundsSpecListNode, BoundsSpecNode, DataPointerObjectNode, DataRefNode, FunctionReferenceNode, IntrinsicFunctionNode, \
     LiteralNode, NameNode, OperatorNode, ParenthesisNode, PartRefNode, ReferenceNode, SubscriptTripletNode, UnaryOperatorNode, PointerAssignmentNode, \
     StructureConstructorNode, ArraySectionNode, ComponentSpecNode
 from parsing.ast_walk.ast_nodes.my_ats_node import AllocOptNode, AssignmentNode, CallNode, ForAllHeaderNode, ForAllTripletNode, ForLoopNode, FunctionDefinitionNode, \
@@ -48,6 +48,7 @@ _node_map = [
     (Boz_Literal_Constant, LiteralNode),
     (Logical_Literal_Constant, LiteralNode),
     (Data_Ref, DataRefNode),
+    (Data_Pointer_Object, DataPointerObjectNode),
     (Procedure_Designator, ProcedureDesignatorNode),
     (Part_Ref, PartRefNode),
     (Subscript_Triplet, SubscriptTripletNode),

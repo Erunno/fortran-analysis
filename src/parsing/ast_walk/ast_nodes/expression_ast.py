@@ -1,7 +1,7 @@
 from parsing.ast_walk.ast_nodes.my_ats_node import CallNode, MyAstNode
 from fparser.two.Fortran2003 import Add_Operand, Mult_Operand, Parenthesis, Part_Ref, Name, Intrinsic_Function_Reference, \
     Int_Literal_Constant, Real_Literal_Constant, Char_Literal_Constant, Boz_Literal_Constant, Logical_Literal_Constant, Data_Ref, \
-    Base, Section_Subscript_List, Subscript_Triplet, Level_2_Unary_Expr, Procedure_Designator, Substring_Range
+    Base, Section_Subscript_List, Subscript_Triplet, Level_2_Unary_Expr, Procedure_Designator, Substring_Range, Data_Pointer_Object
 
 from parsing.find_in_tree import find_in_node, find_in_tree, findall_in_node, findall_in_tree
 
@@ -83,7 +83,7 @@ class NameNode(MyAstNode[Name]):
 class IntrinsicFunctionNode(MyAstNode[Intrinsic_Function_Reference]):
     def __init__(self, fnode: Intrinsic_Function_Reference):
         self.function_name = fnode.children[0].tostr().lower()
-        self.call_args_exprs: list[Base] = fnode.children[1].children
+        self.call_args_exprs: list[Base] = fnode.children[1].children if fnode.children[1] is not None else []
 
 class LiteralNode(MyAstNode[Int_Literal_Constant | Real_Literal_Constant | Char_Literal_Constant | Boz_Literal_Constant | Logical_Literal_Constant]):
     def __init__(self, fnode: Int_Literal_Constant | Real_Literal_Constant | Char_Literal_Constant | Boz_Literal_Constant | Logical_Literal_Constant):
@@ -116,6 +116,20 @@ class DataRefNode(MyAstNode[Data_Ref]):
 
     def get_sliced_dimensions(self):
         return _Helpers.get_slices_dimensions(self.last_fnode)
+    
+class DataPointerObjectNode(MyAstNode[Data_Pointer_Object]):
+    def __init__(self, fnode: Data_Pointer_Object):
+        super().__init__(fnode)
+        self._children = [ch for ch in fnode.children if ch != '%']
+        self.last_fnode = self._children[-1]
+
+    def get_left_node(self):
+        left = self._children[:-1]
+        
+        if len(left) == 1:
+            return left[0]
+        
+        return Data_Ref(left)
 
 class PartRefNode(MyAstNode[Part_Ref]):
     def __init__(self, fnode: Part_Ref):

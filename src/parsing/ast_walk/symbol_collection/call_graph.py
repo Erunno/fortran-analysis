@@ -1,9 +1,14 @@
 import json
+import traceback
 from parsing.ast_walk.dispatcher import Params
 from parsing.ast_walk.symbol_collection.graph import CallGraph
 from parsing.ast_walk.symbol_collection.symbol_collection import SymbolCollection
-from parsing.definitions import GenericFunctionDefinition
+from parsing.definitions import ExternalSymbol, GenericFunctionDefinition
 from parsing.ast_walk.symbol_collection.symbol_collection_dispatcher import collectors_dispatcher
+from parsing.typing import FunctionType
+
+class CatchNoException(BaseException):
+    pass
 
 class GraphCollector:
     def __init__(self, module_dict):
@@ -41,7 +46,11 @@ class GraphCollector:
 
             try:
                 collected_symbols = self._collect_symbols(current_function_symbol)
+
                 called_functions = collected_symbols.get_function_symbols()
+                called_external_functions = collected_symbols.get_external_functions()
+                called_std_functions = collected_symbols.get_std_functions()
+
                 all_symbols = all_symbols.merge(collected_symbols)
 
                 queue = queue + [f for f in called_functions if f not in visited_functions]
@@ -49,15 +58,17 @@ class GraphCollector:
 
                 graph.add_many_calls(
                     caller=current_function_symbol, 
-                    callees=called_functions)
+                    callees=called_functions.union(called_external_functions).union(called_std_functions))
         
                 print(f'Collected {collected_symbols.count()} symbols')
                 print(f' --> Called functions: {len(called_functions)}')
                 print(f' --> All symbols: {all_symbols.count()}')
                 print(f' --> Visited functions / current total: {len(visited_functions)}/{len(queue) + len(visited_functions)}')    
-            except Exception as e:
+            # except Exception as e:
+            except CatchNoException as e:
                 print(f'\033[91mError collecting symbols for {current_function_symbol}\033[0m')
-                graph.set_erroneous_node(current_function_symbol, e)
+                full_err_traceback = traceback.format_stack()
+                graph.set_erroneous_node(current_function_symbol, e, full_err_traceback)
 
             print()
 
@@ -84,3 +95,8 @@ class GraphCollector:
                 return queue
         return queue
         
+    def _get_external_functions(self, symbols: SymbolCollection):
+        external_functions = [f for f in symbols.get_function_symbols() 
+                              if not isinstance(f, ExternalSymbol) and \
+                                isinstance(f.get_type(), FunctionType)]
+        return external_functions

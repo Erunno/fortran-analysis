@@ -1,6 +1,6 @@
 from parsing.definitions import GenericFunctionDefinition, SymbolInitParams
 from parsing.module import FortranModule
-from parsing.typing import AnyType, ArrayType, FortranType, FunctionArgumentForType, FunctionType, PrimitiveType
+from parsing.typing import AnyType, ArrayType, FortranType, FunctionArgumentForType, FunctionType, PointerType, PrimitiveType
 
 
 class IntrinsicsHolderModule(FortranModule):
@@ -287,3 +287,46 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
         )
 
         return IntrinsicFunctionsDefinition('associated', type)
+    
+    @staticmethod
+    def get_sin():
+        type = FunctionType(
+            return_type=PrimitiveType.get_real_instance().with_any_kind(),
+            arg_types=[
+                FunctionArgumentForType('x', PrimitiveType.get_any_number_instance(), is_optional=False)
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('sin', type)
+    
+    @staticmethod
+    def get_cos():
+        type = FunctionType(
+            return_type=PrimitiveType.get_real_instance().with_any_kind(),
+            arg_types=[
+                FunctionArgumentForType('x', PrimitiveType.get_any_number_instance(), is_optional=False)
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('cos', type)
+    
+    @staticmethod
+    def get_aint():
+        type = FunctionType(
+            return_type=PrimitiveType.get_real_instance().with_any_kind(),
+            arg_types=[
+                FunctionArgumentForType('a', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('kind', PrimitiveType.get_integer_instance().with_any_kind(), is_optional=True)
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('aint', type)
+    
+    @staticmethod
+    def get_null():
+        type = FunctionType(
+            return_type=PointerType(AnyType.instance()),
+            arg_types=[]
+        )
+
+        return IntrinsicFunctionsDefinition('null', type)

@@ -280,6 +280,9 @@ class GenericFunctionDefinition(SymbolDefinition):
 
         return arg_types
 
+    def is_default_operator_function(self):
+        return False
+
     def get_type(self) -> FunctionType:
         raise NotImplementedError("get_type not implemented by children classes")
 
@@ -553,7 +556,7 @@ class OperatorRedefinition(SymbolDefinition):
         
         return possible_functions[0]
 
-    def is_default():
+    def is_default_operator_function(self):
         return False
 
     def _set_module_dictionary(self, module_dictionary):
@@ -815,6 +818,8 @@ class Type(SymbolDefinition):
                 raise ValueError(f"Method {method} does not have the struct as the first argument")
 
 class ExternalSymbol(SymbolDefinition):
+    EXTERNAL_SYMBOL_PATH = '<external/lib/path>'
+
     def __init__(self, name, type):
         super().__init__(SymbolInitParams(fparser_node=None, definition_location_symbol=None))
         self.name = name
@@ -835,6 +840,9 @@ class ExternalSymbol(SymbolDefinition):
 
     def get_actual_function_symbol(self, call_args_types):
         return self
+    
+    def is_std_function(self):
+        return False
 
 class AccessModifier:
     def __init__(self, init_params: SymbolInitParams):
