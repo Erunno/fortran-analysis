@@ -83,8 +83,8 @@ modules = [
 
 collector = GraphCollector(module_dict=d)
 
-graph, all_symbols = collector.collect_graph('mod_moloch', 'moloch')
-# graph, all_symbols = collector.collect_graph('mod_mppparam', 'real8_3d_exchange_left_right')
+graph, all_symbols = collector.collect_graph(
+    module_name='mod_moloch', function_name='moloch', catch_exceptions=True)
 
 # print('refereed symbols:')
 

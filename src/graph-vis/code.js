@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function() {
     d3.json("data.json").then(function(data) {
         
-        const useExtendedChildrenView = true;
+        const useExtendedChildrenView = false;
 
         const fullNameToNode = getFuncDict(data);
         
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", function() {
             );
 
         if (!useExtendedChildrenView) {
-            createLinksToOtherCalls(data);
+            createLinksToOtherCalls();
         }
 
         // Nodes
@@ -60,18 +60,23 @@ document.addEventListener("DOMContentLoaded", function() {
 
         
         function displayInfo(event, d) {
-            calledBy = Object.entries(fullNameToNode)
+            const calledBy = Object.entries(fullNameToNode)
                 .filter(([key, node]) => node.children.some(ch => ch.full_name === d.data.full_name) || node.other_calls.includes(d.data.full_name))
                 .map(([key, node]) => node);
+
+            const called = [
+                ...d.data.children.map(ch => ch.name),
+                ...d.data.other_calls.map(call => fullNameToNode[call].name)
+            ]
 
             d3.select('#info')
                 .html(`
                     <h2>${d.data.name}</h2>
                     <p>${d.data.full_name}</p>
                     <a href="${d.data.metadata.url}" target="_blank">GitHub</a>
-                    ${d.children ? `<h3>Called functions</h3>
+                    ${called ? `<h3>Called functions</h3>
                         <ul>
-                            ${d.children.map(child => `<li>${child.data.name}</li>`).join('')}
+                            ${called.map(func => `<li>${func}</li>`).join('')}
                         </ul>` : ''}
                     ${calledBy.length ? `<h3>Called by</h3>
                         <ul>
@@ -125,7 +130,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
-        function createLinksToOtherCalls(data) {
+        function createLinksToOtherCalls() {
             root.descendants().forEach(d => {
                 if (d.data.other_calls) {
                     d.data.other_calls.forEach(call => {

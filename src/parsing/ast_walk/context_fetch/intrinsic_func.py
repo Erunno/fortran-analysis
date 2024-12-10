@@ -309,6 +309,18 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
         )
 
         return IntrinsicFunctionsDefinition('cos', type)
+
+    @staticmethod
+    def get_atan():
+        type = FunctionType(
+            return_type=PrimitiveType.get_real_instance().with_any_kind(),
+            arg_types=[
+                FunctionArgumentForType('x', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('y', PrimitiveType.get_any_number_instance(), is_optional=True)
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('atan', type)
     
     @staticmethod
     def get_aint():
@@ -322,6 +334,19 @@ class IntrinsicFunctionsDefinition(GenericFunctionDefinition):
 
         return IntrinsicFunctionsDefinition('aint', type)
     
+    @staticmethod
+    def get_nint():
+        type = FunctionType(
+            return_type=PrimitiveType.get_integer_instance().with_any_kind(),
+            arg_types=[
+                FunctionArgumentForType('a', PrimitiveType.get_any_number_instance(), is_optional=False),
+                FunctionArgumentForType('kind', PrimitiveType.get_integer_instance().with_any_kind(), is_optional=True)
+            ]
+        )
+
+        return IntrinsicFunctionsDefinition('nint', type)
+
+
     @staticmethod
     def get_null():
         type = FunctionType(

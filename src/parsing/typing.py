@@ -36,7 +36,7 @@ class FortranType:
         return self.__str__()
 
 class AnyType(FortranType):
-    
+
     def is_equivalent(self, other: FortranType) -> bool:
         return True
 
@@ -190,6 +190,7 @@ class PrimitiveType(FortranType):
 
     _castable_kinds = [
         # from, to
+        ('ik4', 'ik8'),
         ('rk8', 'rkx'),
         ('rk8', 'wrkp'),
         ('wrkp', 'rkx'),

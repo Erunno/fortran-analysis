@@ -14,7 +14,8 @@ class GraphCollector:
     def __init__(self, module_dict):
         self.module_dict = module_dict
         
-    def collect_graph(self, module_name, function_name):
+    def collect_graph(self, module_name, function_name, catch_exceptions=True):
+        ExceptionToCatch = Exception if catch_exceptions else CatchNoException
 
         start_function_symbol = self._get_function_symbol(module_name, function_name)
         
@@ -25,16 +26,10 @@ class GraphCollector:
         graph = CallGraph()
         graph.set_root_function(start_function_symbol)
         
-        iter_count = 1
-
         while queue:
-            # if iter_count == 0:
-            #     break
-            # iter_count -= 1
-
-            queue.sort(key=lambda symbol: symbol.key())
 
             # for debugging purposes
+            queue.sort(key=lambda symbol: symbol.key())
             DEBUG_FUNC_NAME = 'cupeman'
             self._move_function_to_front(queue, DEBUG_FUNC_NAME)
 
@@ -64,8 +59,7 @@ class GraphCollector:
                 print(f' --> Called functions: {len(called_functions)}')
                 print(f' --> All symbols: {all_symbols.count()}')
                 print(f' --> Visited functions / current total: {len(visited_functions)}/{len(queue) + len(visited_functions)}')    
-            # except Exception as e:
-            except CatchNoException as e:
+            except ExceptionToCatch as e:
                 print(f'\033[91mError collecting symbols for {current_function_symbol}\033[0m')
                 full_err_traceback = traceback.format_stack()
                 graph.set_erroneous_node(current_function_symbol, e, full_err_traceback)
