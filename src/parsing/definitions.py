@@ -74,6 +74,9 @@ class SymbolDefinition:
     def is_module(self):
         return False
     
+    def get_underling_symbol(self) -> 'SymbolDefinition':
+        return self
+    
     def full_unique_key(self):
         return f'{self.class_label()} {self.key()}::{self.defined_in().full_unique_key()}'
 
@@ -141,6 +144,9 @@ class ImportRenamedSymbol(SymbolDefinition):
 
     def defined_in(self):
         return self.module_of_renaming
+
+    def get_underling_symbol(self):
+        return self.inner_symbol.get_underling_symbol()
 
     def __getattr__(self, item):
         return getattr(self.inner_symbol, item)
@@ -634,6 +640,10 @@ class ProxySymbolDefinition(SymbolDefinition):
 
     def class_label(self):
         return "ProxyForwardSymbol"
+
+    def get_underling_symbol(self):
+        inner_symbol = self._fetch_inner_symbol()
+        return inner_symbol.get_underling_symbol()
 
     def _fetch_inner_symbol(self):
         if self._inner_symbol:

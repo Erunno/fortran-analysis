@@ -60,9 +60,6 @@ class ModuleImportedContext():
     def get_symbol(self, symbol_name: str):
         self._fetch_modules()
 
-        if symbol_name == 'iqql':
-            pass
-
         returned_symbols = []
 
         for module, imported_names, renaming in reversed(self._modules_with_imported_names):
@@ -79,12 +76,12 @@ class ModuleImportedContext():
 
             if symbol_name in renaming:
                 from parsing.definitions import ImportRenamedSymbol
-                symbol = ImportRenamedSymbol(symbol_name, actual_name, self) 
+                symbol = ImportRenamedSymbol(symbol_name, symbol, self) 
 
             returned_symbols.append(symbol)
             # TODO: solve only imports ... e.g. file: mod_memutil.f90
-            
-        if len(returned_symbols) > 1:
+
+        if len(set(returned_symbols)) > 1:
             print(f"\033[93mWarning: Symbol {symbol_name} is defined in multiple modules <{[str(s.defined_in()) for s in returned_symbols]}>\033[0m", file=sys.stderr, end=' ')
         
         return returned_symbols[0] if returned_symbols else None

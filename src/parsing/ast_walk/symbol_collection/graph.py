@@ -1,3 +1,4 @@
+from parsing.ast_walk.symbol_collection.symbol_collection import SymbolCollection
 from parsing.definitions import ExternalSymbol, GenericFunctionDefinition
 
 _reg_cm_base_path = 'https://github.com/ICTP/RegCM/blob/master/'
@@ -15,6 +16,7 @@ class GraphNode:
 
         from parsing.ast_walk.symbol_collection.functions_location_definitions import FileLocationRepository
         self._file_repo : FileLocationRepository = file_repo
+        self._touched_symbols: SymbolCollection = None
 
     def add_call(self, callee: 'GraphNode'):
         if not isinstance(callee, GraphNode):
@@ -58,6 +60,7 @@ class GraphNode:
             'is_external_function': isinstance(self._function_symbol, ExternalSymbol),
             'is_std_function': self._function_symbol.is_std_function(),
             'line_count': self.get_line_count(),
+            'touched_global_vars': self.get_touched_global_variables_pretty_str()
         }
 
         url = self.get_url()
@@ -96,6 +99,16 @@ class GraphNode:
         
         str_code = str(self._function_symbol.fparser_node).lower().split('contains')[0]
         return len(str_code.split('\n'))
+    
+    def set_touched_symbols(self, symbols: SymbolCollection):
+        self._touched_symbols = symbols
+
+    def get_touched_global_variables(self):
+        return self._touched_symbols.get_global_variables() if self._touched_symbols else []
+    
+    def get_touched_global_variables_pretty_str(self):
+        global_vars = self.get_touched_global_variables()
+        return [f'{v.key()}::{v.defined_in().key()}: ({v.get_type()})' for v in global_vars]
 
 class CallGraph:
     def __init__(self):
@@ -115,6 +128,10 @@ class CallGraph:
     def add_many_calls(self, caller, callees):
         for callee in callees:
             self.add_call(caller, callee)
+
+    def set_touched_symbols(self, function: GenericFunctionDefinition, symbols: SymbolCollection):
+        node = self._get_or_create_node(function)
+        node.set_touched_symbols(symbols)
 
     def set_erroneous_node(self, node, error, traceback=None):
         node = self._get_or_create_node(node)

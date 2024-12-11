@@ -55,6 +55,11 @@ class GraphCollector:
                     caller=current_function_symbol, 
                     callees=called_functions.union(called_external_functions).union(called_std_functions))
         
+                graph.set_touched_symbols(
+                    function=current_function_symbol, 
+                    symbols=collected_symbols
+                )
+
                 print(f'Collected {collected_symbols.count()} symbols')
                 print(f' --> Called functions: {len(called_functions)}')
                 print(f' --> All symbols: {all_symbols.count()}')

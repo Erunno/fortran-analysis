@@ -1,10 +1,10 @@
-from parsing.definitions import ExternalSymbol, GenericFunctionDefinition
+from parsing.definitions import ExternalSymbol, GenericFunctionDefinition, SymbolDefinition, VariableDeclaration
 from parsing.typing import FunctionType
 
 
 class SymbolCollection:
     def __init__(self):
-        self.symbols = set()
+        self.symbols: set[SymbolDefinition] = set()
         self.called_intrinsic_functions_names = set()
 
     def merge(self, other: 'SymbolCollection') -> 'SymbolCollection':
@@ -54,6 +54,13 @@ class SymbolCollection:
 
     def count(self) -> int:
         return len(self.symbols)
+
+    def get_global_variables(self):
+        actual_symbols = [s.get_underling_symbol() for s in self.symbols]
+        variables = [s for s in actual_symbols if isinstance(s, VariableDeclaration)]
+        global_variables = [v for v in variables if v.defined_in().is_module()]
+
+        return set(global_variables)
 
     @staticmethod
     def merge_many(args_collections: list['SymbolCollection']) -> 'SymbolCollection':
