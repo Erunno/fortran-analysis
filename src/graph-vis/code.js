@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const fullNameToNode = getFuncDict(data);
         
+        computeRecursiveLineCount(data);
+
         if (useExtendedChildrenView) {
             data = extendChildren(data, fullNameToNode);
         }
@@ -47,7 +49,7 @@ document.addEventListener("DOMContentLoaded", function() {
             });
 
         node.append('circle')
-            .attr('r', 5)
+            .attr('r', d => d.data.metadata.line_count > 100 ? 6 : 2)
             .attr('status', d => d.data.metadata.error ? 'error' : 'ok')
             .attr('is-external-function', d => d.data.metadata.is_external_function)
             .attr('is-std-function', d => d.data.metadata.is_std_function)
@@ -146,6 +148,18 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                 }
             });
+        }
+
+        function computeRecursiveLineCount(data) {
+            function computeNode(node) {
+                node.metadata.recursive_line_count = node.metadata.line_count;
+                
+                node.children.forEach(child => {
+                    computeNode(child);
+                    node.metadata.recursive_line_count += child.metadata.recursive_line_count;
+                });
+            }
+            computeNode(data);
         }
         
     });

@@ -58,7 +58,6 @@ class GraphNode:
             'is_external_function': isinstance(self._function_symbol, ExternalSymbol),
             'is_std_function': self._function_symbol.is_std_function(),
             'line_count': self.get_line_count(),
-            
         }
 
         url = self.get_url()
@@ -89,9 +88,11 @@ class GraphNode:
         return _reg_cm_base_path + tail
     
     def get_line_count(self):
-        if isinstance(self._function_symbol, GenericFunctionDefinition) and \
-            not self._function_symbol.is_std_function():
-            return 0
+        if not isinstance(self._function_symbol, GenericFunctionDefinition):
+            return None
+        
+        if self._function_symbol.is_std_function():
+            return None
         
         str_code = str(self._function_symbol.fparser_node).lower().split('contains')[0]
         return len(str_code.split('\n'))

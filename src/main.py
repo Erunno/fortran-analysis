@@ -86,10 +86,9 @@ collector = GraphCollector(module_dict=d)
 graph, all_symbols = collector.collect_graph(
     module_name='mod_moloch', function_name='moloch', catch_exceptions=True)
 
-# print('refereed symbols:')
+# graph, all_symbols = collector.collect_graph(
+#     module_name='mod_cu_shallow', function_name='shallow', catch_exceptions=True)
 
-# for symbol in all_symbols.symbols:
-#     print(symbol)
 
 json_data = graph.get_json_dict_graph()
 json_str = json.dumps(json_data, indent=4)
