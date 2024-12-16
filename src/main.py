@@ -1,12 +1,19 @@
 import json
 from parsing.ast_walk.run_translation import run_translation
 from parsing.ast_walk.symbol_collection.call_graph import GraphCollector
+from parsing.fprof_result.gprof_result import GProfResult
 from parsing.functions_analyzer import FunctionAnalyzer
 from parsing.module_dictionary import ModuleDictionary
+import os
 
-reg_cm = 'C:\\Users\\matya\\source\\repos\\RegCM' 
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
-d = ModuleDictionary(base_dir=reg_cm, skip_dirs=['Tools'])
+reg_cm_path = 'C:\\Users\\matya\\source\\repos\\RegCM' 
+gprof_res_path = os.path.join(script_dir, '..', 'data', 'gprof.out')
+
+d = ModuleDictionary(base_dir=reg_cm_path, skip_dirs=['Tools'])
+gprof_result = GProfResult.load_from(gprof_res_path)
+
 
 modules = [
 'mod_moloch',
@@ -81,19 +88,21 @@ modules = [
 #     function_name='step_timer'
 # )
 
-collector = GraphCollector(module_dict=d)
+# collector = GraphCollector(module_dict=d)
 
-graph, all_symbols = collector.collect_graph(
-    module_name='mod_moloch', function_name='moloch', catch_exceptions=True)
+# graph, all_symbols = collector.collect_graph(
+#     module_name='mod_moloch', function_name='moloch', catch_exceptions=True)
 
 # graph, all_symbols = collector.collect_graph(
 #     module_name='mod_cu_shallow', function_name='shallow', catch_exceptions=True)
 
 
-json_data = graph.get_json_dict_graph()
-json_str = json.dumps(json_data, indent=4)
+# json_data = graph.get_json_dict_graph()
+# json_str = json.dumps(json_data, indent=4)
 
-output_path = 'C:\\Users\\matya\\source\\repos\\fortran-parser\\src\\graph-vis\\data.json'
-with open(output_path, 'w') as json_file:
-    json_file.write(json_str)
+# output_path = 'C:\\Users\\matya\\source\\repos\\fortran-parser\\src\\graph-vis\\data.json'
+# with open(output_path, 'w') as json_file:
+#     json_file.write(json_str)
+
+
 

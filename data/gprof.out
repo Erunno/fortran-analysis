@@ -576,8 +576,8 @@ notice and this notice are preserved.
 granularity: each sample hit covers 2 byte(s) for 0.00% of 6175.17 seconds
 
 index % time    self  children    called     name
-                                                 <spontaneous>
-[1]    100.0    0.00 6175.14                 MAIN__ [1]
+                  -1      -1                     <spontaneous>
+[1]    100.0    0.00 6175.14       1/1       MAIN__ [1]
                 0.00 5742.89       1/1           __mod_regcm_interface_MOD_rcm_run [2]
                 0.01  432.24       1/1           __mod_regcm_interface_MOD_rcm_initialize <cycle 1> [7]
                 0.00    0.00       1/1440        __mod_bdycod_MOD_bdyval [64]
@@ -650,7 +650,7 @@ index % time    self  children    called     name
                 0.01    0.85       1             __mod_params_MOD_param <cycle 1> [94]
                 0.00    0.14       1             __mod_atm_interface_MOD_allocate_mod_atm_interface <cycle 1> [138]
 -----------------------------------------------
-                                   2             __mod_atm_interface_MOD_allocate_mod_atm_interface <cycle 1> [138]
+                  -1      -1       2             __mod_atm_interface_MOD_allocate_mod_atm_interface <cycle 1> [138]
                 0.01  432.24       1/1           MAIN__ [1]
 [7]      7.0    0.00  431.25       3         __mod_regcm_interface_MOD_rcm_initialize <cycle 1> [7]
                 0.05  431.03       1/1           __mod_init_MOD_init [8]
@@ -669,7 +669,7 @@ index % time    self  children    called     name
                 0.00    0.00       1/1           __mod_mppparam_MOD_set_nproc [557]
                 0.00    0.00       1/1           __mod_header_MOD_header [542]
                 0.00    0.00       1/1           __mod_atm_interface_MOD_setup_model_indexes [489]
-                                   1             __mod_params_MOD_param <cycle 1> [94]
+                  -1      -1       1             __mod_params_MOD_param <cycle 1> [94]
 -----------------------------------------------
                 0.05  431.03       1/1           __mod_regcm_interface_MOD_rcm_initialize <cycle 1> [7]
 [8]      7.0    0.05  431.03       1         __mod_init_MOD_init [8]
@@ -855,10 +855,10 @@ index % time    self  children    called     name
 [20]     2.1   28.37  100.76     287         __mod_cu_tiedtke_MOD_tiedtkedrv [20]
               100.76    0.00     287/287         __mod_cu_tables_MOD_init_convect_tables [21]
 -----------------------------------------------
-                               32107             __mod_cu_tables_MOD_init_convect_tables [21]
+                  -1      -1   32107             __mod_cu_tables_MOD_init_convect_tables [21]
               100.76    0.00     287/287         __mod_cu_tiedtke_MOD_tiedtkedrv [20]
 [21]     1.6  100.76    0.00     287+32107   __mod_cu_tables_MOD_init_convect_tables [21]
-                               32107             __mod_cu_tables_MOD_init_convect_tables [21]
+                  -1      -1   32107             __mod_cu_tables_MOD_init_convect_tables [21]
 -----------------------------------------------
                13.10   62.72      49/49          __mod_moloch_MOD_pfesat [4]
 [22]     1.2   13.10   62.72      49         __mod_rad_colmod3_MOD_colmod3 [22]
@@ -896,11 +896,11 @@ index % time    self  children    called     name
 [28]     0.4   26.80    0.51      49         __mod_rad_radiation_MOD_radcsw [28]
                 0.51    0.00     931/931         __mod_rad_radiation_MOD_radclr [104]
 -----------------------------------------------
-                             120551592             __mod_clm_canopyfluxes_MOD_ci_func [29]
+                  -1      -1 120551592             __mod_clm_canopyfluxes_MOD_ci_func [29]
                21.32    4.82   11890/11890       __mod_clm_canopyfluxes_MOD_canopyfluxes [24]
 [29]     0.4   21.32    4.82   11890+120551592 __mod_clm_canopyfluxes_MOD_ci_func [29]
                 4.82    0.00 361522494/361522494     __mod_clm_canopyfluxes_MOD_quadratic [56]
-                             120551592             __mod_clm_canopyfluxes_MOD_ci_func [29]
+                  -1      -1 120551592             __mod_clm_canopyfluxes_MOD_ci_func [29]
 -----------------------------------------------
                17.08    6.48     145/145         __mod_clm_biogeophysics2_MOD_biogeophysics2 [27]
 [30]     0.4   17.08    6.48     145         __mod_clm_soiltemperature_MOD_soiltemperature [30]
@@ -1220,7 +1220,7 @@ index % time    self  children    called     name
                 0.64    0.00     145/194         __mod_clm_driver_MOD_clm_drv [18]
 [93]     0.0    0.86    0.00     194         __mod_clm_vocemission_MOD_vocemission [93]
 -----------------------------------------------
-                                   1             __mod_regcm_interface_MOD_rcm_initialize <cycle 1> [7]
+                  -1      -1       1             __mod_regcm_interface_MOD_rcm_initialize <cycle 1> [7]
 [94]     0.0    0.01    0.85       1         __mod_params_MOD_param <cycle 1> [94]
                 0.00    0.19       1/1           __mod_lm_interface_MOD_allocate_surface_model [130]
                 0.00    0.13       1/1           __mod_savefile_MOD_allocate_mod_savefile [141]
@@ -1284,7 +1284,7 @@ index % time    self  children    called     name
                 0.00    0.00       1/1           __mod_pbl_interface_MOD_init_pblscheme [565]
                 0.00    0.00       1/1           __mod_zita_MOD_model_zitaf [577]
                 0.00    0.00       1/1           __mod_zita_MOD_model_zitah [578]
-                                   1             __mod_atm_interface_MOD_allocate_mod_atm_interface <cycle 1> [138]
+                  -1      -1       1             __mod_atm_interface_MOD_allocate_mod_atm_interface <cycle 1> [138]
 -----------------------------------------------
                 0.84    0.01     437/437         __mod_clm_atmlnd_MOD_clm_map2gcell [53]
 [95]     0.0    0.84    0.01     437         __mod_clm_subgridave_MOD_p2g_2d [95]
@@ -1592,14 +1592,14 @@ index % time    self  children    called     name
                 0.00    0.00     269/269         __mod_space_MOD_getspc2d_r8arr [348]
                 0.00    0.00       1/12          __mod_memutil_MOD_relmem2d_d [408]
 -----------------------------------------------
-                                   1             __mod_params_MOD_param <cycle 1> [94]
+                  -1      -1       1             __mod_params_MOD_param <cycle 1> [94]
 [138]    0.0    0.00    0.14       1         __mod_atm_interface_MOD_allocate_mod_atm_interface <cycle 1> [138]
                 0.09    0.00      34/252         __mod_memutil_MOD_getmem3d_d [102]
                 0.03    0.00      54/269         __mod_memutil_MOD_getmem2d_d [137]
                 0.02    0.00       2/22          __mod_memutil_MOD_getmem4d_d [120]
                 0.00    0.00       4/20          __mod_memutil_MOD_getmem2d_i [393]
                 0.00    0.00       2/125         __mod_memutil_MOD_assignp2d_d [366]
-                                   2             __mod_regcm_interface_MOD_rcm_initialize <cycle 1> [7]
+                  -1      -1       2             __mod_regcm_interface_MOD_rcm_initialize <cycle 1> [7]
 -----------------------------------------------
                 0.00    0.00       1/146         __mod_clm_initsurfalb_MOD_initsurfalb [157]
                 0.13    0.00     145/146         __mod_clm_driver_MOD_clm_drv [18]
@@ -2106,14 +2106,14 @@ index % time    self  children    called     name
                 0.01    0.00       1/1           __mod_rad_o3blk_MOD_o3data [217]
 [218]    0.0    0.01    0.00       1         __mod_vertint_MOD_intlinprof [218]
 -----------------------------------------------
-                                                 <spontaneous>
-[219]    0.0    0.01    0.00                 __mod_cbmz_linearalgebra_MOD_kppdecomp [219]
+                  -1      -1                     <spontaneous>
+[219]    0.0    0.01    0.00       1/1       __mod_cbmz_linearalgebra_MOD_kppdecomp [219]
 -----------------------------------------------
-                                                 <spontaneous>
-[220]    0.0    0.01    0.00                 __mod_mppparam_MOD_real8_4d_exchange [220]
+                  -1      -1                     <spontaneous>
+[220]    0.0    0.01    0.00       1/1       __mod_mppparam_MOD_real8_4d_exchange [220]
 -----------------------------------------------
-                                                 <spontaneous>
-[221]    0.0    0.01    0.00                 __mod_mppparam_MOD_real8_4d_exchange_bottom_top [221]
+                  -1      -1                     <spontaneous>
+[221]    0.0    0.01    0.00       1/1       __mod_mppparam_MOD_real8_4d_exchange_bottom_top [221]
 -----------------------------------------------
                 0.00    0.00       1/17331       __mod_cu_interface_MOD_init_cumulus [169]
                 0.00    0.00       2/17331       __mod_lm_interface_MOD_allocate_surface_model [130]
