@@ -73,6 +73,10 @@ svg {
     stroke: #f00;
 }
 
+.node[was_called="false"]{
+    opacity: 0.1;
+}
+
 .node text {
     font: 10px sans-serif;
 }

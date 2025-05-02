@@ -26,7 +26,11 @@ class GraphCollector:
         graph = CallGraph()
         graph.set_root_function(start_function_symbol)
         
-        while queue:
+        i = 0
+        max_iter = 500000
+
+        while queue and i < max_iter:
+            i += 1
 
             # for debugging purposes
             queue.sort(key=lambda symbol: symbol.key())

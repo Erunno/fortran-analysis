@@ -88,21 +88,24 @@ modules = [
 #     function_name='step_timer'
 # )
 
-# collector = GraphCollector(module_dict=d)
+module_name = 'mod_moloch'
+function_name = 'moloch'
 
-# graph, all_symbols = collector.collect_graph(
-#     module_name='mod_moloch', function_name='moloch', catch_exceptions=True)
+gprof_result.set_root_function(module_name, function_name)
 
-# graph, all_symbols = collector.collect_graph(
-#     module_name='mod_cu_shallow', function_name='shallow', catch_exceptions=True)
+collector = GraphCollector(module_dict=d)
 
+graph, all_symbols = collector.collect_graph(
+    module_name=module_name, function_name=function_name, catch_exceptions=True)
 
-# json_data = graph.get_json_dict_graph()
-# json_str = json.dumps(json_data, indent=4)
+graph.set_gprof_result(gprof_result)
 
-# output_path = 'C:\\Users\\matya\\source\\repos\\fortran-parser\\src\\graph-vis\\data.json'
-# with open(output_path, 'w') as json_file:
-#     json_file.write(json_str)
+json_data = graph.get_json_dict_graph()
+json_str = json.dumps(json_data, indent=4)
+
+output_path = 'C:\\Users\\matya\\source\\repos\\fortran-parser\\src\\graph-vis\\data.json'
+with open(output_path, 'w') as json_file:
+    json_file.write(json_str)
 
 
 

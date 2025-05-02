@@ -1,5 +1,7 @@
 from parsing.ast_walk.symbol_collection.symbol_collection import SymbolCollection
 from parsing.definitions import ExternalSymbol, GenericFunctionDefinition
+from parsing.fprof_result.call_record import FunctionCall
+from parsing.fprof_result.gprof_result import GProfResult
 
 _reg_cm_base_path = 'https://github.com/ICTP/RegCM/blob/master/'
 
@@ -13,10 +15,13 @@ class GraphNode:
         self._error : Exception = None
         self._traceback = None
         self._parent = None
+        self._gprof_result = None
+        self._gprof_call_record :FunctionCall = None
 
         from parsing.ast_walk.symbol_collection.functions_location_definitions import FileLocationRepository
         self._file_repo : FileLocationRepository = file_repo
         self._touched_symbols: SymbolCollection = None
+
 
     def add_call(self, callee: 'GraphNode'):
         if not isinstance(callee, GraphNode):
@@ -53,15 +58,28 @@ class GraphNode:
                 if self.key() != func.parent().key()] 
 
     def json_dict_metadata(self):
-
         metadata = {
             'error': str(self._error) if self._error else None,
             'traceback': str(self._error) if self._traceback else None,
             'is_external_function': isinstance(self._function_symbol, ExternalSymbol),
             'is_std_function': self._function_symbol.is_std_function(),
             'line_count': self.get_line_count(),
-            'touched_global_vars': self.get_touched_global_variables_pretty_str()
+            'touched_global_vars': self.get_touched_global_variables_pretty_str(),
+            
         }
+
+        if self._gprof_result is not None:
+            if not self._gprof_call_record:
+                metadata['gprof_result'] = {
+                    'actually_called': False,
+                    'called_times': 0,
+                }
+            else:
+                metadata['gprof_result'] = {
+                    'actually_called': self._gprof_call_record.visited_from_root(),
+                    'called_times': self._gprof_call_record.called_times(),
+                    'run_time_pct': self._gprof_call_record.run_time_pct(),
+                }
 
         url = self.get_url()
         if url:
@@ -78,6 +96,12 @@ class GraphNode:
             return None
         
         return module.file_path()
+
+    def set_gprof_result(self, gprof_result: GProfResult):
+        self._gprof_result = gprof_result
+        self._gprof_call_record = gprof_result.get_result(
+            self._function_symbol.defined_in_module().key(),
+            self._function_symbol.key())
 
     def get_url(self):
         path = self.get_path()
@@ -112,8 +136,9 @@ class GraphNode:
 
 class CallGraph:
     def __init__(self):
-        self._nodes = {}
+        self._nodes: dict[str, GraphNode] = {}
         self._root_function = None
+        self._gprof_result = None
 
         from parsing.ast_walk.symbol_collection.functions_location_definitions import FileLocationRepository
         self._file_repo = FileLocationRepository()
@@ -147,6 +172,12 @@ class CallGraph:
     
     def set_root_function(self, function: GenericFunctionDefinition):
         self._root_function = function
+
+    def set_gprof_result(self, gprof_result: GProfResult):
+        self._gprof_result = gprof_result
+        
+        for _, n in self._nodes.items():
+            n.set_gprof_result(gprof_result)
 
     def get_json_dict_graph(self, root_node: GenericFunctionDefinition = None):
 

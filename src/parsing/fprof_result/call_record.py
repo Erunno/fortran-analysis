@@ -53,6 +53,9 @@ class CallDetailRecord:
     def is_for(self, module: str, function: str):
         return self._main_function_full_name.module == module and self._main_function_full_name.function == function
     
+    def get_called_functions_names(self) -> list[tuple[str, str]]:
+        return [(line.module, line.function) for line in self._called_lines]
+
     def _parse_description_lines(self, description_lines) -> tuple[list[CallDetailLine], CallDetailLine, list[CallDetailLine]]:
         caller_lines = []
         main_function_full_name = None
@@ -74,10 +77,11 @@ class CallDetailRecord:
             
         return caller_lines, main_function_full_name, called_lines
    
-class FunctionCallResult:
+class FunctionCall:
     def __init__(self, description_from_flat_profile: str, gprof_result):
         from parsing.fprof_result.gprof_result import GProfResult
         
+        self._visited_from_root = False
         self._call_detail_record = None
         self.gprof_result : GProfResult = gprof_result
 
@@ -103,6 +107,24 @@ class FunctionCallResult:
         
         self._call_detail_record = call_detail_record
 
+    def get_called_functions(self):
+        names = self._call_detail_record.get_called_functions_names()
+        return [self.gprof_result.get_result(module, function) for module, function in names]
+
+    def set_visited_from_root(self):
+        self._visited_from_root = True
+
+    def set_not_visited_from_root(self):
+        self._visited_from_root = False
+
+    def visited_from_root(self):
+        return self._visited_from_root
+    
+    def called_times(self):
+        return self._calls
+    
+    def run_time_pct(self):
+        return self._run_time_pct
 
     def _parse_description_line(self, description: str):
         #   %   cumulative   self              self     total           

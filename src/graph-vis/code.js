@@ -54,6 +54,8 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr('status', d => d.data.metadata.error ? 'error' : 'ok')
             .attr('is-external-function', d => d.data.metadata.is_external_function)
             .attr('is-std-function', d => d.data.metadata.is_std_function)
+        
+        node.attr('was-called', d => d.data.metadata.gprof_result.actually_called)
 
         node.append('text')
             .attr('dy', 3)
@@ -74,6 +76,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             touchedVars = sortVars(d.data.metadata.touched_global_vars);
             recursivelyTouchedVars = sortVars(d.data.metadata.recursive_touched_global_vars);
+            gprof_result = d.data.metadata.gprof_result;
 
             d3.select('#info')
                 .html(`
@@ -90,10 +93,12 @@ document.addEventListener("DOMContentLoaded", function() {
                         </ul>` : ''}
                     <h3>Metadata</h3>
                         ${enumDict(d.data.metadata, (key, val) => `<p><b>${key}</b> ${escape(val)}</p>`)}
+                    <h3>GProf out</h3>
+                        ${enumDict(gprof_result, (key, val) => `<p><b>${key}</b> ${escape(val)}</p>`)}
                     <h3>Touched global variables (${touchedVars.length})</h3>
                         <ul>
                         ${touchedVars.map(printVar).join('')}
-                        </ul>
+                        </ul>.02
                     <h3>Recursively touched vars (${recursivelyTouchedVars.length})</h3>
                         <ul>
                         ${recursivelyTouchedVars.map(printVar).join('')}
@@ -107,10 +112,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
             function enumDict(dict, callback) {
                 return Object.entries(dict)
-                    .filter(([key, value]) => !!value)
+                    .filter(([key, value]) => value !== null && value !== undefined)
                     .filter(([key, value]) => key !== 'url')
                     .filter(([key, value]) => key !== 'touched_global_vars')
                     .filter(([key, value]) => key !== 'recursive_touched_global_vars')
+                    .filter(([key, value]) => key !== 'gprof_result')
                     .map(([key, value]) => callback(key, value)).join('');
 
             }
